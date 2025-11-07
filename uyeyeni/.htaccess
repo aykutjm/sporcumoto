@@ -1,0 +1,109 @@
+# ============================================
+# Sporcum - Clean URL Configuration
+# Tüm .html uzantılarını gizler
+# Gelecekte eklenecek sayfalar için de geçerli
+# ============================================
+
+# Enable mod_rewrite
+RewriteEngine On
+
+# Set default index file
+DirectoryIndex index.html index.php
+
+# ============================================
+# Security & Performance
+# ============================================
+
+# Disable directory browsing
+Options -Indexes
+
+# Protect .htaccess and other hidden files
+<FilesMatch "^\.">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# ============================================
+# Clean URLs - Remove .html extension
+# ============================================
+
+# Remove trailing slashes (except for directories)
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_URI} (.+)/$
+RewriteRule ^ %1 [R=301,L]
+
+# Redirect .html URLs to clean URLs (external redirect)
+RewriteCond %{THE_REQUEST} ^[A-Z]{3,9}\ /([^.\ ]+)\.html\ HTTP/
+RewriteRule ^([^.]+)\.html$ /$1 [R=301,L,NC]
+
+# Internal rewrite: Add .html extension if file exists
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME}.html -f
+RewriteRule ^([^\.]+)$ $1.html [L,QSA]
+
+# ============================================
+# Optional: Force HTTPS (SSL required)
+# Uncomment the lines below if you have SSL
+# ============================================
+# RewriteCond %{HTTPS} off
+# RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# ============================================
+# Optional: Force www or non-www
+# Uncomment ONE of the sections below
+# ============================================
+
+# Force www (e.g., sporcum.co → www.sporcum.co)
+# RewriteCond %{HTTP_HOST} !^www\. [NC]
+# RewriteRule ^(.*)$ https://www.%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# Force non-www (e.g., www.sporcum.co → sporcum.co)
+# RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]
+# RewriteRule ^(.*)$ https://%1%{REQUEST_URI} [L,R=301]
+
+# ============================================
+# Cache Control (Optional - Improve Performance)
+# ============================================
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType image/jpg "access plus 1 year"
+    ExpiresByType image/jpeg "access plus 1 year"
+    ExpiresByType image/gif "access plus 1 year"
+    ExpiresByType image/png "access plus 1 year"
+    ExpiresByType image/webp "access plus 1 year"
+    ExpiresByType image/svg+xml "access plus 1 year"
+    ExpiresByType text/css "access plus 1 month"
+    ExpiresByType application/javascript "access plus 1 month"
+    ExpiresByType text/javascript "access plus 1 month"
+    ExpiresByType application/pdf "access plus 1 month"
+    ExpiresByType text/html "access plus 0 seconds"
+</IfModule>
+
+# ============================================
+# Compression (Optional - Improve Performance)
+# ============================================
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html
+    AddOutputFilterByType DEFLATE text/css
+    AddOutputFilterByType DEFLATE text/javascript
+    AddOutputFilterByType DEFLATE text/xml
+    AddOutputFilterByType DEFLATE text/plain
+    AddOutputFilterByType DEFLATE application/javascript
+    AddOutputFilterByType DEFLATE application/x-javascript
+    AddOutputFilterByType DEFLATE application/json
+    AddOutputFilterByType DEFLATE application/xml
+    AddOutputFilterByType DEFLATE application/xhtml+xml
+    AddOutputFilterByType DEFLATE application/rss+xml
+    AddOutputFilterByType DEFLATE image/svg+xml
+</IfModule>
+
+# ============================================
+# Error Pages (Optional)
+# ============================================
+# ErrorDocument 404 /404.html
+# ErrorDocument 500 /500.html
+
+
+
+

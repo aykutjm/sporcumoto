@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Giriş Yap | Sporcum</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-helper.js"></script>
+    <script type="module">
+        // IMPORTANT: Replace with your actual Supabase configuration
+        const SUPABASE_URL = 'https://supabase.edu-ai.online';
+        const SUPABASE_ANON_KEY = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzdXBhYmFzZSIsImlhdCI6MTc2MjEwNTMyMCwiZXhwIjo0OTE3Nzc4OTIwLCJyb2xlIjoiYW5vbiJ9.HXUza0GT82-trWkx0WWKe-nY7KsGrIjIHSOJPKsOHjs';
+
+        // Supabase başlat
+        const supabase = window.supabaseHelper.initSupabase(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const auth = window.supabaseHelper.auth;
+        const db = window.supabaseHelper.db;
+
+        // Global olarak kullanılabilmesi için
+        window.firebase = {
+            auth: auth,
+            db: db,
+            signInWithEmailAndPassword: (email, password) => auth.signInWithEmailAndPassword(email, password),
+            // collection() 1 veya 2 parametre alabilir (Firebase uyumluluğu için)
+            collection: (dbRefOrName, collectionName) => {
+                // Eğer 2 parametre varsa, ikincisini kullan (collection name)
+                const tableName = collectionName || dbRefOrName;
+                return db.collection(tableName);
+            },
+            query: (collectionRef, ...conditions) => db.query(collectionRef, ...conditions),
+            where: window.supabaseHelper.where,
+            getDocs: (collectionRef) => db.getDocs(collectionRef, collectionRef.queryOptions)
+        };
+        
+        window.supabase = supabase;
+        window.db = db;
+        window.auth = auth;
+
+        console.log('Supabase initialized');
+    </script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .login-card {
+            animation: fadeInUp 0.6s ease-out;
+        }
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .input-field {
+            transition: all 0.3s ease;
+        }
+        .input-field:focus {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+        .btn-login {
+            transition: all 0.3s ease;
+        }
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+        .loading {
+            display: none;
+        }
+        .loading.active {
+            display: inline-block;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="w-full max-w-md px-6">
+        <!-- Back Button -->
+        <div class="mb-4">
+            <a href="index" class="inline-flex items-center text-white hover:text-yellow-300 transition-colors">
+                <i data-lucide="arrow-left" class="w-5 h-5 mr-2"></i>
+                Ana Sayfaya Dön
+            </a>
+        </div>
+
+        <!-- Logo -->
+        <div class="text-center mb-8">
+            <div class="inline-flex items-center justify-center w-20 h-20 bg-white rounded-full shadow-lg mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600">
+                    <path d="m12 14 4-4"/><path d="m12 14-4-4"/><path d="M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z"/>
+                </svg>
+            </div>
+            <h1 class="text-4xl font-bold text-white mb-2">Spor<span class="text-yellow-300">cum</span></h1>
+            <p class="text-blue-100">Spor Kulübü Yönetim Sistemi</p>
+        </div>
+
+        <!-- Login Card -->
+        <div class="login-card bg-white rounded-3xl shadow-2xl p-8">
+            <h2 class="text-2xl font-bold text-slate-800 mb-2 text-center">Giriş Yap</h2>
+            <p class="text-slate-600 text-center mb-8">Telefon numaranız ve şifreniz ile giriş yapın</p>
+
+            <!-- Error Message -->
+            <div id="error-message" class="hidden mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm"></div>
+
+            <!-- Login Form -->
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <div class="mb-6">
+                    <label for="phone" class="block text-sm font-medium text-slate-700 mb-2">
+                        <i data-lucide="phone" class="w-4 h-4 inline mr-1"></i>
+                        Telefon / Email
+                    </label>
+                    <input 
+                        type="text" 
+                        id="phone" 
+                        name="phone" 
+                        class="input-field w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                        placeholder="05xxxxxxxxx"
+                        autocomplete="username"
+                        required
+                    >
+                </div>
+
+                <div class="mb-6">
+                    <label for="password" class="block text-sm font-medium text-slate-700 mb-2">
+                        <i data-lucide="lock" class="w-4 h-4 inline mr-1"></i>
+                        Şifre
+                    </label>
+                    <div class="relative">
+                        <input 
+                            type="password" 
+                            id="password" 
+                            name="password" 
+                            class="input-field w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                            placeholder="••••••••"
+                            autocomplete="current-password"
+                            required
+                        >
+                        <button 
+                            type="button" 
+                            onclick="togglePassword()" 
+                            class="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                        >
+                            <i data-lucide="eye" id="eye-icon" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <button 
+                    type="submit" 
+                    class="btn-login w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:from-blue-700 hover:to-purple-700 flex items-center justify-center"
+                >
+                    <i data-lucide="loader-2" class="w-5 h-5 mr-2 loading" id="loading-icon"></i>
+                    <span id="button-text">Giriş Yap</span>
+                </button>
+            </form>
+        </div>
+
+        <!-- Footer -->
+        <div class="text-center mt-8">
+            <p class="text-blue-100 text-sm">&copy; 2024 Sporcum Teknoloji A.Ş.</p>
+        </div>
+    </div>
+
+    <script>
+        // Lucide Icons Activation
+        lucide.createIcons();
+
+        function togglePassword() {
+            const passwordInput = document.getElementById('password');
+            const eyeIcon = document.getElementById('eye-icon');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                eyeIcon.setAttribute('data-lucide', 'eye-off');
+            } else {
+                passwordInput.type = 'password';
+                eyeIcon.setAttribute('data-lucide', 'eye');
+            }
+            lucide.createIcons();
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.textContent = message;
+            errorDiv.classList.remove('hidden');
+            setTimeout(() => {
+                errorDiv.classList.add('hidden');
+            }, 5000);
+        }
+
+        function setLoading(isLoading) {
+            const loadingIcon = document.getElementById('loading-icon');
+            const buttonText = document.getElementById('button-text');
+            const submitButton = document.querySelector('button[type="submit"]');
+            
+            if (isLoading) {
+                loadingIcon.classList.add('active');
+                buttonText.textContent = 'Giriş yapılıyor...';
+                submitButton.disabled = true;
+                submitButton.classList.add('opacity-50', 'cursor-not-allowed');
+            } else {
+                loadingIcon.classList.remove('active');
+                buttonText.textContent = 'Giriş Yap';
+                submitButton.disabled = false;
+                submitButton.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+            lucide.createIcons();
+        }
+
+        async function handleLogin(event) {
+            event.preventDefault();
+            setLoading(true);
+
+            const phone = document.getElementById('phone').value.trim();
+            const password = document.getElementById('password').value;
+
+            // Telefon numarası düzenleme - başındaki 0'ı kaldır
+            let cleanPhone = phone;
+            if (phone.startsWith('0')) {
+                cleanPhone = phone.substring(1); // 05441234567 -> 5441234567
+            }
+
+            console.log('Giriş denemesi - Orijinal:', phone, 'Temiz:', cleanPhone);
+
+            try {
+                // 0. SuperAdmin kontrolü (email formatında ise)
+                if (phone.includes('@')) {
+                    try {
+                        // Firebase'den SuperAdmin config'i oku
+                        const { getFirestore, doc, getDoc } = await import('https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js');
+                        const db = window.firebase.db;
+                        const configRef = doc(db, 'superadmin', 'config');
+                        const configDoc = await getDoc(configRef);
+                        
+                        let validCredentials = {
+                            email: 'superadmin@sporcum.com',
+                            password: 'Sporcum2024!'
+                        };
+                        
+                        if (configDoc.exists()) {
+                            validCredentials = configDoc.data();
+                            console.log('✅ SuperAdmin config Firebase\'den okundu');
+                        } else {
+                            console.log('⚠️ SuperAdmin config bulunamadı, varsayılan bilgiler kullanılıyor');
+                        }
+                        
+                        // Giriş kontrolü
+                        if (phone === validCredentials.email && password === validCredentials.password) {
+                            sessionStorage.setItem('superAdmin', JSON.stringify({ email: phone, name: 'Super Admin' }));
+                            console.log('✅ SuperAdmin girişi başarılı, yönlendiriliyor...');
+                            window.location.href = 'superadmin';
+                            return;
+                        } else {
+                            showError('SuperAdmin email veya şifre hatalı!');
+                            setLoading(false);
+                            return;
+                        }
+                    } catch (configError) {
+                        console.log('⚠️ Config okuma hatası, varsayılan bilgiler deneniyor:', configError);
+                        // Fallback - varsayılan bilgilerle dene
+                        if (phone === 'superadmin@sporcum.com' && password === 'Sporcum2024!') {
+                            sessionStorage.setItem('superAdmin', JSON.stringify({ email: phone, name: 'Super Admin' }));
+                            console.log('✅ SuperAdmin girişi başarılı (varsayılan), yönlendiriliyor...');
+                            window.location.href = 'superadmin';
+                            return;
+                        } else {
+                            showError('SuperAdmin email veya şifre hatalı!');
+                            setLoading(false);
+                            return;
+                        }
+                    }
+                }
+                
+                // 1. Önce users koleksyonunda kontrol et (Yönetici)
+                console.log('Yönetici kontrolü yapılıyor...');
+                const usersQuery = window.firebase.query(
+                    window.firebase.collection(window.firebase.db, 'users'),
+                    window.firebase.where('phone', '==', phone)
+                );
+                const usersSnapshot = await window.firebase.getDocs(usersQuery);
+
+                if (!usersSnapshot.empty) {
+                    const userDoc = usersSnapshot.docs[0];
+                    const userData = userDoc.data();
+                    
+                    console.log('Yönetici bulundu:', userData.email);
+                    
+                    // Şifre kontrolü
+                    if (userData.password !== password) {
+                        showError('Şifre hatalı!');
+                        setLoading(false);
+                        return;
+                    }
+
+                    // Firebase Authentication ile giriş yap
+                    try {
+                        await window.firebase.signInWithEmailAndPassword(
+                            window.firebase.auth,
+                            userData.email,
+                            password
+                        );
+                    } catch (authError) {
+                        console.log('Firebase Auth hatası (devam ediliyor):', authError.message);
+                    }
+
+                    // Session storage'a kaydet
+                    sessionStorage.setItem('currentUser', JSON.stringify(userData));
+                    sessionStorage.setItem('userType', 'admin');
+                    
+                    console.log('✅ Yönetici girişi başarılı, yönlendiriliyor...');
+                    
+                    // Return URL varsa oraya, yoksa admin'e yönlendir
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const returnUrl = urlParams.get('return');
+                    window.location.href = returnUrl || 'admin';
+                    return;
+                }
+
+                // 2. Members koleksyonunda Telefon ile kontrol et
+                console.log('Üye kontrolü yapılıyor (Telefon)...');
+                const membersQuery = window.firebase.query(
+                    window.firebase.collection(window.firebase.db, 'members'),
+                    window.firebase.where('Telefon', '==', phone)
+                );
+                const membersSnapshot = await window.firebase.getDocs(membersQuery);
+
+                if (!membersSnapshot.empty) {
+                    const memberDoc = membersSnapshot.docs[0];
+                    const memberData = { id: memberDoc.id, ...memberDoc.data() };
+                    
+                    console.log('Üye bulundu (Telefon):', memberData.Ad_Soyad || memberData.Resit_Olmayan_Adi_Soyadi);
+                    
+                    // Şifre kontrolü - önce password alanına bak, yoksa telefonu kullan
+                    const correctPassword = memberData.password || memberData.Sifre || memberData.Telefon;
+                    console.log('Şifre kontrolü yapılıyor...');
+                    
+                    if (correctPassword !== password) {
+                        showError('Şifre hatalı!');
+                        setLoading(false);
+                        return;
+                    }
+
+                    // Session storage'a kaydet
+                    sessionStorage.setItem('currentMember', JSON.stringify(memberData));
+                    sessionStorage.setItem('userType', 'member');
+                    sessionStorage.setItem('loggedInPhone', phone);
+                    sessionStorage.setItem('loggedInUserType', 'parent1');
+                    
+                    console.log('✅ Üye girişi başarılı (1. Veli), yönlendiriliyor...');
+                    window.location.href = 'uye';
+                    return;
+                }
+
+                // 3. Telefon_2 ile kontrol et
+                console.log('Üye kontrolü yapılıyor (Telefon_2)...');
+                const members2Query = window.firebase.query(
+                    window.firebase.collection(window.firebase.db, 'members'),
+                    window.firebase.where('Telefon_2', '==', phone)
+                );
+                const members2Snapshot = await window.firebase.getDocs(members2Query);
+
+                if (!members2Snapshot.empty) {
+                    const memberDoc = members2Snapshot.docs[0];
+                    const memberData = { id: memberDoc.id, ...memberDoc.data() };
+                    
+                    console.log('Üye bulundu (Telefon_2):', memberData.Ad_Soyad || memberData.Resit_Olmayan_Adi_Soyadi);
+                    
+                    // Şifre kontrolü - önce password2 alanına bak, yoksa telefonu kullan
+                    const correctPassword = memberData.password2 || memberData.Sifre_2 || memberData.Telefon_2;
+                    console.log('Şifre kontrolü yapılıyor (2. Veli)...');
+                    
+                    if (correctPassword !== password) {
+                        showError('Şifre hatalı!');
+                        setLoading(false);
+                        return;
+                    }
+
+                    // Session storage'a kaydet
+                    sessionStorage.setItem('currentMember', JSON.stringify(memberData));
+                    sessionStorage.setItem('userType', 'member');
+                    sessionStorage.setItem('loggedInPhone', phone);
+                    sessionStorage.setItem('loggedInUserType', 'parent2');
+                    
+                    console.log('✅ Üye girişi başarılı (2. Veli), yönlendiriliyor...');
+                    window.location.href = 'uye';
+                    return;
+                }
+
+                // Hiçbir koleksyonda bulunamadı
+                console.log('❌ Kullanıcı bulunamadı');
+                showError('Telefon numarası veya şifre hatalı!');
+                setLoading(false);
+
+            } catch (error) {
+                console.error('❌ Giriş hatası:', error);
+                showError('Bir hata oluştu: ' + error.message);
+                setLoading(false);
+            }
+        }
+
+        // Enter tuşu ile giriş
+        document.getElementById('phone').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('password').focus();
+            }
+        });
+    </script>
+</body>
+</html>
+

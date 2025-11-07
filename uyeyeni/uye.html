@@ -1,0 +1,1519 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sporcum - Üye Portalı</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎾</text></svg>">
+    
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-helper.js"></script>
+    <script type="module">
+        // --- IMPORTANT: Supabase Configuration ---
+        const SUPABASE_URL = 'https://supabase.edu-ai.online';
+        const SUPABASE_ANON_KEY = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzdXBhYmFzZSIsImlhdCI6MTc2MjEwNTMyMCwiZXhwIjo0OTE3Nzc4OTIwLCJyb2xlIjoiYW5vbiJ9.HXUza0GT82-trWkx0WWKe-nY7KsGrIjIHSOJPKsOHjs';
+        
+        // Initialize Supabase
+        const supabase = window.supabaseHelper.initSupabase(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const auth = window.supabaseHelper.auth;
+        const db = window.supabaseHelper.db;
+        
+        // Make available globally
+        window.supabase = supabase;
+        window.auth = auth;
+        window.db = db;
+        
+        // Firebase-compatible helpers
+        // collection() 1 veya 2 parametre alabilir (Firebase uyumluluğu için)
+        window.collection = (dbRefOrName, collectionName) => {
+            // Eğer ilk parametre obje ise (db reference), ikinci parametreyi kullan
+            if (typeof dbRefOrName === 'object' && dbRefOrName !== null && collectionName) {
+                return db.collection(collectionName);
+            }
+            // Tek parametre veya string ise, ilk parametreyi kullan
+            const tableName = collectionName || dbRefOrName;
+            return db.collection(tableName);
+        };
+        // getDocs() queryOptions'ı da geçmeli
+        window.getDocs = (collectionRef) => db.getDocs(collectionRef, collectionRef.queryOptions);
+        window.query = (collectionRef, ...conditions) => db.query(collectionRef, ...conditions);
+        window.where = window.supabaseHelper.where;
+        // doc() 2 veya 3 parametre alabilir
+        window.doc = (dbRefOrName, collectionOrId, id) => {
+            // Eğer ilk parametre obje ise (db reference), ikinci ve üçüncü parametreyi kullan
+            if (typeof dbRefOrName === 'object' && dbRefOrName !== null && collectionOrId && id) {
+                return db.doc(collectionOrId, id);
+            }
+            // 2 parametre varsa (tableName, docId)
+            if (!id && collectionOrId) {
+                return db.doc(dbRefOrName, collectionOrId);
+            }
+            // Fallback
+            const tableName = id ? collectionOrId : dbRefOrName;
+            const docId = id || collectionOrId;
+            return db.doc(tableName, docId);
+        };
+        window.updateDoc = (docRef, data) => db.updateDoc(docRef, data);
+        window.addDoc = (collectionRef, data) => db.addDoc(collectionRef, data);
+
+        // --- GLOBAL STATE & CACHE ---
+        let loggedInUser = null; // Store the main member record used for login
+        let loggedInUserType = 'parent1'; // 'parent1' or 'parent2' - which parent logged in
+        let loggedInPhone = null; // Store the phone number used for login
+        let associatedMembers = []; // Store all members linked to the phone number
+        let allPreRegistrations = [], allGroups = [], allSchedules = [], allAttendance = [];
+        let clubName = 'Sporcum';
+        let autoRefreshInterval = null; // For auto-refresh timer
+        
+        // ✅ Yardımcı fonksiyon: group.members array veya object olabilir, normalize et
+        function getGroupMemberIds(group) {
+            if (!group || !group.members) return [];
+            return Array.isArray(group.members) ? group.members : Object.keys(group.members);
+        }
+
+
+        // --- AUTHENTICATION & INITIALIZATION ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            // ✅ Check if user came from giris.html with valid session
+            const sessionMember = sessionStorage.getItem('currentMember');
+            const userType = sessionStorage.getItem('userType');
+            const sessionUserType = sessionStorage.getItem('loggedInUserType');
+            const sessionPhone = sessionStorage.getItem('loggedInPhone');
+            
+            if (sessionMember && userType === 'member') {
+                // User logged in from giris.html, skip login screen
+                try {
+                    loggedInUser = JSON.parse(sessionMember);
+                    loggedInUserType = sessionUserType || 'parent1';
+                    loggedInPhone = sessionPhone;
+                    console.log('✅ Session found, auto-login:', loggedInUser.Ad_Soyad || loggedInUser.Resit_Olmayan_Adi_Soyadi);
+                    
+                    // ✅ Sayfayı görünür yap (login ekranı atlandı)
+                    document.body.style.visibility = 'visible';
+                    document.getElementById('login-overlay').style.display = 'none';
+                    document.getElementById('main-content').style.display = 'block';
+                    
+                    startPortal();
+                    return;
+                } catch (error) {
+                    console.error('Session parse error:', error);
+                    sessionStorage.clear();
+                }
+            }
+            
+            // ✅ Session yoksa sayfayı görünür yap (login olacak)
+            document.body.style.visibility = 'visible';
+            
+            // ❌ No valid session, redirect to login page
+            console.log('❌ No valid member session found, redirecting to giris...');
+            sessionStorage.clear();
+            window.location.replace('giris');
+        });
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const usernameInput = document.getElementById('username');
+            const passwordInput = document.getElementById('password');
+            const errorEl = document.getElementById('login-error');
+            const loginButton = e.target.querySelector('button[type="submit"]');
+
+            const username = usernameInput.value;
+            const password = passwordInput.value;
+
+            errorEl.style.display = 'none';
+            loginButton.disabled = true;
+            loginButton.textContent = 'Giriş Yapılıyor...';
+
+            try {
+                // Query members by phone number (username) - check both Telefon and Telefon_2
+                const q1 = query(collection(db, "members"), where("Telefon", "==", username));
+                const q2 = query(collection(db, "members"), where("Telefon_2", "==", username));
+                
+                const [querySnapshot1, querySnapshot2] = await Promise.all([getDocs(q1), getDocs(q2)]);
+                
+                let userDoc = null;
+                let userData = null;
+                
+                if (!querySnapshot1.empty) {
+                    userDoc = querySnapshot1.docs[0];
+                    userData = userDoc.data();
+                } else if (!querySnapshot2.empty) {
+                    userDoc = querySnapshot2.docs[0];
+                    userData = userDoc.data();
+                } else {
+                    throw new Error("Bu telefon numarasına kayıtlı üye bulunamadı.");
+                }
+
+                // Check password: first check for a custom password, then fall back to phone number
+                // For second parent (Telefon_2), also check password2 field if it exists
+                let isPasswordCorrect = false;
+                let loginType = 'parent1';
+                
+                if (userData.Telefon === username) {
+                    // First parent login
+                    isPasswordCorrect = (userData.password && userData.password === password) || (!userData.password && userData.Telefon === password);
+                    loginType = 'parent1';
+                } else if (userData.Telefon_2 === username) {
+                    // Second parent login
+                    isPasswordCorrect = (userData.password2 && userData.password2 === password) || (!userData.password2 && userData.Telefon_2 === password);
+                    loginType = 'parent2';
+                }
+
+                if (isPasswordCorrect) {
+                    loggedInUser = { id: userDoc.id, ...userData };
+                    loggedInUserType = loginType;
+                    loggedInPhone = username;
+                    
+                    // Log user activity
+                    try {
+                        const loginName = loginType === 'parent2' && userData.Veli_2_Adi_Soyadi 
+                            ? userData.Veli_2_Adi_Soyadi 
+                            : userData.Ad_Soyad;
+                        
+                        await addDoc(collection(db, 'userActivities'), {
+                            memberId: userDoc.id,
+                            memberName: loginName,
+                            phone: username,
+                            activity: 'Giriş Yaptı',
+                            loginType: loginType,
+                            timestamp: new Date().toISOString(),
+                            userAgent: navigator.userAgent,
+                            branch: userData.Brans
+                        });
+                    } catch (activityError) {
+                        console.error('Activity logging failed:', activityError);
+                        // Don't block login if activity logging fails
+                    }
+                    
+                    document.getElementById('login-overlay').style.display = 'none';
+                    document.getElementById('main-content').style.display = 'block';
+                    await startPortal();
+                } else {
+                    throw new Error("Şifre hatalı.");
+                }
+
+            } catch (error) {
+                errorEl.textContent = error.message;
+                errorEl.style.display = 'block';
+            } finally {
+                loginButton.disabled = false;
+                loginButton.textContent = 'Giriş Yap';
+            }
+        }
+        
+        function handleLogout() {
+             // Stop auto-refresh
+             if (autoRefreshInterval) {
+                 clearInterval(autoRefreshInterval);
+                 autoRefreshInterval = null;
+             }
+             
+             // Clear ALL session storage
+             sessionStorage.clear();
+             
+             loggedInUser = null;
+             loggedInUserType = 'parent1';
+             loggedInPhone = null;
+             associatedMembers = [];
+             
+             // Force redirect to login page
+             console.log('✅ Logged out, redirecting to giris...');
+             window.location.replace('giris');
+        }
+        
+        async function refreshPortalData(silent = false) {
+            try {
+                // Fetch latest data from Firebase
+                await fetchAllData();
+                
+                // Re-fetch associated members (in case new members were added)
+                const updatedMembers = await findAssociatedMembers(loggedInPhone);
+                
+                // Check if there are any changes
+                const hasChanges = JSON.stringify(updatedMembers) !== JSON.stringify(associatedMembers);
+                
+                if (hasChanges || !silent) {
+                    associatedMembers = updatedMembers;
+                    
+                    // Only re-render if we're on the dashboard or details view
+                    const contentDiv = document.getElementById('portal-content');
+                    if (contentDiv && (contentDiv.innerHTML.includes('member-card') || contentDiv.innerHTML.includes('details-header'))) {
+                        renderDashboard();
+                    }
+                }
+                
+                if (!silent) {
+                    console.log('✅ Data refreshed');
+                }
+                
+            } catch (error) {
+                console.error('Error refreshing data:', error);
+                // Silent refresh sırasında hata olursa, kullanıcıya bildirme
+                if (!silent) {
+                    showAlert('Veriler güncellenirken bir hata oluştu.', 'danger');
+                }
+            }
+        }
+        
+        window.refreshPortalData = refreshPortalData;
+
+        async function startPortal() {
+            const contentDiv = document.getElementById('portal-content');
+            contentDiv.innerHTML = `<div class="loading"><div class="spinner"></div><span>Verileriniz yükleniyor...</span></div>`;
+            
+            try {
+                // Display correct name based on who logged in
+                const displayName = loggedInUserType === 'parent2' && loggedInUser.Veli_2_Adi_Soyadi 
+                    ? loggedInUser.Veli_2_Adi_Soyadi 
+                    : loggedInUser.Ad_Soyad;
+                
+                document.getElementById('welcome-message').textContent = `Hoş geldiniz, ${displayName}`;
+
+                await fetchAllData();
+
+                // Find all members associated with the logged-in user's phone number
+                associatedMembers = await findAssociatedMembers(loggedInPhone);
+
+                renderDashboard();
+                
+                // Start auto-refresh every 30 seconds
+                if (autoRefreshInterval) {
+                    clearInterval(autoRefreshInterval);
+                }
+                autoRefreshInterval = setInterval(() => {
+                    refreshPortalData(true); // Silent refresh
+                }, 30000); // 30 seconds
+                
+                console.log('✅ Auto-refresh started (every 30 seconds)');
+            } catch (error) {
+                console.error('Portal başlatma hatası:', error);
+                contentDiv.innerHTML = `
+                    <div class="error-state">
+                        <h3>⚠️ Veriler Yüklenemedi</h3>
+                        <p>Bir hata oluştu. Lütfen sayfayı yenileyin veya daha sonra tekrar deneyin.</p>
+                        <button class="btn btn-primary" onclick="location.reload()">🔄 Sayfayı Yenile</button>
+                    </div>
+                `;
+            }
+        }
+
+        // --- DATA FETCHING ---
+        async function fetchAllData() {
+            try {
+                const queries = [
+                    getDocs(collection(db, 'preRegistrations')),
+                    getDocs(collection(db, 'groups')),
+                    getDocs(collection(db, 'schedules')),
+                    getDocs(collection(db, 'attendanceRecords'))
+                ];
+                
+                const [preRegsSnapshot, groupsSnapshot, schedulesSnapshot, attendanceSnapshot] = await Promise.all(queries);
+
+                allPreRegistrations = preRegsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                allGroups = groupsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                allSchedules = schedulesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                allAttendance = attendanceSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                console.log('✅ Portal data loaded:', {
+                    preRegistrations: allPreRegistrations.length,
+                    groups: allGroups.length,
+                    schedules: allSchedules.length,
+                    attendance: allAttendance.length
+                });
+
+            } catch (error) {
+                console.error("Error fetching portal data:", error);
+                throw error; // Hatayı üst fonksiyona ilet
+            }
+        }
+
+        async function findAssociatedMembers(phone) {
+            // Find members where phone matches either Telefon or Telefon_2
+            const q1 = query(collection(db, "members"), where("Telefon", "==", phone));
+            const q2 = query(collection(db, "members"), where("Telefon_2", "==", phone));
+            
+            const [querySnapshot1, querySnapshot2] = await Promise.all([getDocs(q1), getDocs(q2)]);
+            
+            const members1 = querySnapshot1.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            const members2 = querySnapshot2.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            
+            // Combine and remove duplicates (by id)
+            const allMembers = [...members1, ...members2];
+            const uniqueMembers = Array.from(new Map(allMembers.map(m => [m.id, m])).values());
+            
+            return uniqueMembers;
+        }
+
+        // --- RENDERING FUNCTIONS ---
+        function renderDashboard() {
+            const contentDiv = document.getElementById('portal-content');
+            
+            if (associatedMembers.length === 0) {
+                contentDiv.innerHTML = `<div class="info-state">Bu telefon numarasına bağlı aktif bir üyelik bulunamadı.</div>`;
+                return;
+            }
+
+            const memberCardsHtml = associatedMembers.map(member => {
+                const isChild = member.Resit_Olmayan_Adi_Soyadi && member.Resit_Olmayan_Adi_Soyadi.trim() !== '';
+                const memberName = isChild ? member.Resit_Olmayan_Adi_Soyadi : member.Ad_Soyad;
+                const group = allGroups.find(g => getGroupMemberIds(g).includes(member.id));
+
+                return `
+                    <div class="member-card" onclick="showMemberDetails('${member.id}')">
+                        <h3>${memberName}</h3>
+                        <p><strong>Branş:</strong> ${member.Brans === 'tenis' ? '🎾' : '🏊'} ${capitalize(member.Brans)}</p>
+                        <p><strong>Grup:</strong> ${group ? group.groupName : 'Atanmamış'}</p>
+                        <p><strong>Durum:</strong> <span class="status-badge status-${member.status || 'pending'}">${getStatusText(member.status)}</span></p>
+                        <button class="btn btn-primary btn-sm">Detayları Gör →</button>
+                    </div>
+                `;
+            }).join('');
+
+            contentDiv.innerHTML = `
+                <h2 class="section-title">Üyelikleriniz</h2>
+                <div class="dashboard-cards">
+                    ${memberCardsHtml}
+                </div>
+            `;
+        }
+
+        function showMemberDetails(memberId) {
+            const contentDiv = document.getElementById('portal-content');
+            const member = associatedMembers.find(m => m.id === memberId);
+            if (!member) return;
+            
+            const isChild = member.Resit_Olmayan_Adi_Soyadi && member.Resit_Olmayan_Adi_Soyadi.trim() !== '';
+            const memberName = isChild ? member.Resit_Olmayan_Adi_Soyadi : member.Ad_Soyad;
+
+            // Find related data
+            const preReg = allPreRegistrations.find(p => p.id === member.preRegistrationId);
+            const group = allGroups.find(g => getGroupMemberIds(g).includes(member.id));
+            const memberSchedules = group ? allSchedules.filter(s => s.groupId === group.id) : [];
+            const memberAttendance = allAttendance.filter(a => a.memberId === memberId).sort((a,b) => new Date(b.date) - new Date(a.date));
+            const coachName = group ? group.instructor : 'Belirtilmemiş';
+
+            const detailsHtml = `
+                <div class="details-header">
+                     <button class="btn btn-secondary back-btn" onclick="renderDashboard()">← Geri</button>
+                     <h2>${memberName}</h2>
+                     <button class="btn btn-primary btn-sm profile-btn" onclick="openProfileModal('${member.id}')">Profili Düzenle</button>
+                </div>
+                
+                <div class="details-grid">
+                    <!-- Schedule Card -->
+                    <div class="card">
+                        <h3 class="card-title">📅 Ders Programı</h3>
+                        ${renderSchedule(memberSchedules)}
+                    </div>
+
+                    <!-- Contact Card -->
+                    <div class="card">
+                        <h3 class="card-title">📞 İletişim</h3>
+                        <div class="contact-info">
+                            <p><strong>Eğitmen:</strong> ${coachName}</p>
+                            <p>Görüş ve sorularınız için eğitmeninizle iletişime geçebilirsiniz.</p>
+                        </div>
+                    </div>
+
+                    <!-- Payment Card -->
+                    <div class="card full-width">
+                        <h3 class="card-title">💰 Ödeme Planı</h3>
+                        ${renderPaymentPlan(preReg)}
+                    </div>
+
+                    <!-- Attendance Card -->
+                    <div class="card full-width">
+                        <h3 class="card-title">📋 Yoklama Geçmişi (Dönem Dönem)</h3>
+                        ${renderAttendanceHistory(memberAttendance, preReg)}
+                    </div>
+                </div>
+            `;
+            contentDiv.innerHTML = detailsHtml;
+        }
+
+        function renderSchedule(schedules) {
+            if (schedules.length === 0) {
+                return `<div class="empty-state-small"><p>Henüz bir ders programı atanmamış.</p></div>`;
+            }
+             const today = new Date().toLocaleDateString('tr-TR', { weekday: 'long' }).toLowerCase();
+             // Remove duplicates before rendering
+            const uniqueSchedules = [...new Map(schedules.map(item => [`${item.day}-${item.startTime}`, item])).values()];
+
+            // Define the correct order of days
+            const dayOrder = ['pazartesi', 'salı', 'çarşamba', 'perşembe', 'cuma', 'cumartesi', 'pazar'];
+
+            // Sort schedules according to the day order
+            uniqueSchedules.sort((a, b) => dayOrder.indexOf(a.day) - dayOrder.indexOf(b.day));
+
+            const scheduleHtml = uniqueSchedules.map(s => `
+                <div class="schedule-item ${s.day === today ? 'today' : ''}">
+                    <strong>${capitalize(s.day)}:</strong>
+                    <span>${s.startTime} - ${s.endTime}</span>
+                </div>
+            `).join('');
+            return `<div class="schedule-list">${scheduleHtml}</div>`;
+        }
+
+        function renderPaymentPlan(preReg) {
+            if (!preReg || !preReg.paymentSchedule || preReg.paymentSchedule.length === 0) {
+                return `<div class="empty-state-small"><p>Ödeme planı bulunamadı.</p></div>`;
+            }
+            
+            const tableHeader = `
+                <thead>
+                    <tr>
+                        <th>Dönem</th>
+                        <th>Dönem Aralığı</th>
+                        <th>Ders Sayısı</th>
+                        <th>Tutar</th>
+                        <th>Son Ödeme</th>
+                        <th>Durum</th>
+                    </tr>
+                </thead>`;
+
+            const today = new Date();
+            today.setHours(0,0,0,0);
+
+            const tableBody = preReg.paymentSchedule.map(p => {
+                const isOverdue = new Date(p.dueDate + 'T00:00:00') < today && p.status === 'unpaid';
+                const statusClass = isOverdue ? 'overdue' : p.status;
+
+                return `
+                    <tr>
+                        <td>${p.paymentNumber}. Aidat</td>
+                        <td>${formatDate(p.period.start)} - ${formatDate(p.period.end)}</td>
+                        <td>${p.period.lessonCount || '-'} Ders</td>
+                        <td>${p.amount.toLocaleString('tr-TR')}₺</td>
+                        <td>${formatDate(p.dueDate)}</td>
+                        <td><span class="status-badge status-${statusClass}">${getPaymentStatusText(statusClass)}</span></td>
+                    </tr>
+                `;
+            }).join('');
+
+            return `<div class="table-container"><table class="data-table">${tableHeader}<tbody>${tableBody}</tbody></table></div>`;
+        }
+
+        function renderAttendanceHistory(attendance, preReg) {
+            if (attendance.length === 0) {
+                return `<div class="empty-state-small"><p>📝 Henüz yoklama kaydı bulunmuyor.</p></div>`;
+            }
+            
+            if (!preReg || !preReg.paymentSchedule || preReg.paymentSchedule.length === 0) {
+                // Dönem bilgisi yoksa basit görünüm (tarih sırasına göre)
+                const tableHeader = `
+                    <thead>
+                        <tr>
+                            <th>Tarih</th>
+                            <th>Durum</th>
+                        </tr>
+                    </thead>`;
+
+                const tableBody = attendance.map(a => {
+                    const recordDate = new Date(a.date + 'T00:00:00');
+                    const formattedDate = recordDate.toLocaleDateString('tr-TR', { 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric', 
+                        weekday: 'long' 
+                    });
+                    return `
+                        <tr>
+                            <td>${formattedDate}</td>
+                            <td><span class="status-badge ${a.status === 'present' ? 'status-present' : 'status-absent'}">${a.status === 'present' ? '✅ Katıldı' : '❌ Katılmadı'}</span></td>
+                        </tr>
+                    `;
+                }).join('');
+
+                return `<div class="table-container"><table class="data-table">${tableHeader}<tbody>${tableBody}</tbody></table></div>`;
+            }
+            
+            // Dönem dönem yoklama gösterimi
+            let periodsHtml = '';
+            
+            preReg.paymentSchedule.forEach((period, index) => {
+                const periodStart = new Date(period.period.start + 'T00:00:00');
+                const periodEnd = new Date(period.period.end + 'T00:00:00');
+                const lessonCount = period.period.lessonCount || 'N/A';
+                
+                // Bu döneme ait yoklama kayıtlarını filtrele
+                const periodAttendance = attendance.filter(record => {
+                    const recordDate = new Date(record.date + 'T00:00:00');
+                    return recordDate >= periodStart && recordDate <= periodEnd;
+                }).sort((a, b) => new Date(b.date) - new Date(a.date));
+                
+                const presentCount = periodAttendance.filter(r => r.status === 'present').length;
+                const absentCount = periodAttendance.filter(r => r.status === 'absent').length;
+                const attendanceRate = periodAttendance.length > 0 ? ((presentCount / periodAttendance.length) * 100).toFixed(0) : 0;
+                
+                periodsHtml += `
+                    <div class="period-card">
+                        <div class="period-header">
+                            <div>
+                                <h3>📅 ${period.paymentNumber}. Dönem</h3>
+                                <p class="period-dates">
+                                    ${formatDate(period.period.start)} - ${formatDate(period.period.end)} 
+                                    <span class="lesson-badge">${lessonCount} Ders</span>
+                                </p>
+                            </div>
+                            <div class="period-stats">
+                                <div class="stat-item">
+                                    <div class="stat-value success">${presentCount}</div>
+                                    <div class="stat-label">✅ Katıldı</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-value danger">${absentCount}</div>
+                                    <div class="stat-label">❌ Katılmadı</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-value info">${attendanceRate}%</div>
+                                    <div class="stat-label">📊 Devam Oranı</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        ${periodAttendance.length === 0 ? 
+                            `<div class="empty-state-small">
+                                <p>📝 Bu dönem için henüz yoklama kaydı bulunmuyor.</p>
+                            </div>` 
+                            : 
+                            `<div class="table-container">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 50%;">Tarih</th>
+                                            <th style="width: 20%; text-align: center;">Durum</th>
+                                            <th style="width: 30%;">Devamsızlık Sebebi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${periodAttendance.map(record => {
+                                            const recordDate = new Date(record.date + 'T00:00:00');
+                                            const formattedDate = recordDate.toLocaleDateString('tr-TR', { 
+                                                year: 'numeric', 
+                                                month: 'long', 
+                                                day: 'numeric', 
+                                                weekday: 'long' 
+                                            });
+                                            const statusClass = record.status === 'present' ? 'status-present' : 'status-absent';
+                                            const statusText = record.status === 'present' ? '✅ Katıldı' : '❌ Katılmadı';
+                                            
+                                            // Devamsızlık sebebi
+                                            let reasonCell = '';
+                                            if (record.status === 'absent') {
+                                                if (record.reason && record.reason.trim()) {
+                                                    reasonCell = `<td><span style="color: #666; font-style: italic;">${record.reason}</span></td>`;
+                                                } else {
+                                                    reasonCell = `<td><span style="color: #999;">Sebep belirtilmedi</span></td>`;
+                                                }
+                                            } else {
+                                                reasonCell = `<td style="text-align: center; color: #ccc;">-</td>`;
+                                            }
+                                            
+                                            return `
+                                                <tr>
+                                                    <td><strong>${formattedDate}</strong></td>
+                                                    <td style="text-align: center;"><span class="status-badge ${statusClass}">${statusText}</span></td>
+                                                    ${reasonCell}
+                                                </tr>
+                                            `;
+                                        }).join('')}
+                                    </tbody>
+                                </table>
+                            </div>`
+                        }
+                    </div>
+                `;
+            });
+            
+            return periodsHtml;
+        }
+
+        // --- PROFILE EDIT FUNCTIONS ---
+        function openProfileModal(memberId) {
+            const member = associatedMembers.find(m => m.id === memberId);
+            if (!member) return;
+
+            const form = document.getElementById('profileForm');
+            form.reset();
+            form.memberId.value = memberId;
+
+            const isChild = member.Resit_Olmayan_Adi_Soyadi && member.Resit_Olmayan_Adi_Soyadi.trim() !== '';
+
+            // Get form groups
+            const studentNameGroup = form.querySelector('#studentNameGroup');
+            const adSoyadGroup = form.querySelector('#adSoyadGroup');
+            const birthDateGroup = form.querySelector('#birthDateGroup');
+            const telefonGroup = form.querySelector('#telefonGroup');
+            const passwordGroup = form.querySelector('#passwordGroup');
+            const confirmPasswordGroup = form.querySelector('#confirmPasswordGroup');
+            const veli2AdSoyadGroup = form.querySelector('#veli2AdSoyadGroup');
+            const telefon2Group = form.querySelector('#telefon2Group');
+            const password2Group = form.querySelector('#password2Group');
+            const confirmPassword2Group = form.querySelector('#confirmPassword2Group');
+            
+            // Get labels
+            const adSoyadLabel = form.querySelector('label[for="profileAdSoyad"]');
+            const birthDateLabel = form.querySelector('label[for="profileBirthDate"]');
+
+            if (isChild) {
+                // Show child-related fields
+                studentNameGroup.style.display = 'block';
+                birthDateGroup.style.display = 'block';
+                
+                // Determine which parent is logged in
+                if (loggedInUserType === 'parent1') {
+                    // Parent 1 can only edit their own info
+                    adSoyadGroup.style.display = 'block';
+                    telefonGroup.style.display = 'block';
+                    passwordGroup.style.display = 'block';
+                    confirmPasswordGroup.style.display = 'block';
+                    
+                    // Hide Parent 2 fields (read-only access)
+                    veli2AdSoyadGroup.style.display = 'none';
+                    telefon2Group.style.display = 'none';
+                    password2Group.style.display = 'none';
+                    confirmPassword2Group.style.display = 'none';
+                    
+                    adSoyadLabel.textContent = 'Veli 1 Adı Soyadı (Sizin)';
+                } else {
+                    // Parent 2 can only edit their own info
+                    veli2AdSoyadGroup.style.display = 'block';
+                    telefon2Group.style.display = 'block';
+                    password2Group.style.display = 'block';
+                    confirmPassword2Group.style.display = 'block';
+                    
+                    // Hide Parent 1 fields (read-only access)
+                    adSoyadGroup.style.display = 'none';
+                    telefonGroup.style.display = 'none';
+                    passwordGroup.style.display = 'none';
+                    confirmPasswordGroup.style.display = 'none';
+                }
+
+                birthDateLabel.textContent = 'Öğrenci Doğum Tarihi';
+
+                // Populate values
+                form.resitOlmayanAdSoyad.value = member.Resit_Olmayan_Adi_Soyadi || '';
+                form.adSoyad.value = member.Ad_Soyad || '';
+                form.studentBirthDate.value = member.studentBirthDate || '';
+                form.telefon.value = member.Telefon || '';
+                form.veli2AdSoyad.value = member.Veli_2_Adi_Soyadi || '';
+                form.telefon2.value = member.Telefon_2 || '';
+            } else { // Adult
+                // Hide child-related fields
+                studentNameGroup.style.display = 'none';
+                veli2AdSoyadGroup.style.display = 'none';
+                telefon2Group.style.display = 'none';
+                password2Group.style.display = 'none';
+                confirmPassword2Group.style.display = 'none';
+                // Show adult fields
+                adSoyadGroup.style.display = 'block';
+                telefonGroup.style.display = 'block';
+                passwordGroup.style.display = 'block';
+                confirmPasswordGroup.style.display = 'block';
+                birthDateGroup.style.display = 'block';
+
+                // Set labels for adult context
+                adSoyadLabel.textContent = 'Ad Soyadı';
+                birthDateLabel.textContent = 'Doğum Tarihi';
+
+                // Populate values
+                form.adSoyad.value = member.Ad_Soyad || '';
+                form.studentBirthDate.value = member.studentBirthDate || '';
+                form.telefon.value = member.Telefon || '';
+            }
+            
+            // Open modal and scroll to top
+            const modal = document.getElementById('profileModal');
+            modal.style.display = 'flex';
+            
+            // Scroll modal content to top
+            const modalContent = modal.querySelector('.modal-content');
+            if (modalContent) {
+                modalContent.scrollTop = 0;
+            }
+            
+            // Also scroll page to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        async function handleProfileUpdate(e) {
+            e.preventDefault();
+            const form = e.target;
+            const memberId = form.memberId.value;
+            const newPassword = form.newPassword ? form.newPassword.value : '';
+            const confirmPassword = form.confirmPassword ? form.confirmPassword.value : '';
+            const newPassword2 = form.newPassword2 ? form.newPassword2.value : '';
+            const confirmPassword2 = form.confirmPassword2 ? form.confirmPassword2.value : '';
+
+            const member = associatedMembers.find(m => m.id === memberId);
+            if (!member) return showAlert('Üye bulunamadı.', 'danger');
+            const isChild = member.Resit_Olmayan_Adi_Soyadi && member.Resit_Olmayan_Adi_Soyadi.trim() !== '';
+
+            let updateData = {};
+
+            if (isChild) {
+                // For child members, only update the fields visible to the logged-in parent
+                if (loggedInUserType === 'parent1') {
+                    // Parent 1 can only update their own fields
+                    if (newPassword && newPassword !== confirmPassword) {
+                        return showAlert('Yeni şifreler eşleşmiyor.', 'danger');
+                    }
+                    
+                    updateData = {
+                        Ad_Soyad: form.adSoyad.value,
+                        Resit_Olmayan_Adi_Soyadi: form.resitOlmayanAdSoyad.value,
+                        studentBirthDate: form.studentBirthDate.value
+                    };
+                    
+                    if (newPassword) {
+                        updateData.password = newPassword;
+                    }
+                } else {
+                    // Parent 2 can only update their own fields
+                    if (newPassword2 && newPassword2 !== confirmPassword2) {
+                        return showAlert('Yeni şifreler eşleşmiyor.', 'danger');
+                    }
+                    
+                    updateData = {
+                        Veli_2_Adi_Soyadi: form.veli2AdSoyad.value,
+                        Telefon_2: form.telefon2.value,
+                        Resit_Olmayan_Adi_Soyadi: form.resitOlmayanAdSoyad.value,
+                        studentBirthDate: form.studentBirthDate.value
+                    };
+                    
+                    if (newPassword2) {
+                        updateData.password2 = newPassword2;
+                    }
+                }
+            } else { // Adult
+                if (newPassword && newPassword !== confirmPassword) {
+                    return showAlert('Yeni şifreler eşleşmiyor.', 'danger');
+                }
+                
+                updateData = {
+                    Ad_Soyad: form.adSoyad.value,
+                    studentBirthDate: form.studentBirthDate.value
+                    // Telefon is readonly, so we don't update it
+                };
+                
+                if (newPassword) {
+                    updateData.password = newPassword;
+                }
+            }
+
+            try {
+                const memberRef = doc(db, 'members', memberId);
+                await updateDoc(memberRef, updateData);
+                
+                // Update local cache
+                const memberIndex = associatedMembers.findIndex(m => m.id === memberId);
+                if (memberIndex > -1) {
+                    // Merge existing data with updated data
+                    associatedMembers[memberIndex] = { ...associatedMembers[memberIndex], ...updateData };
+                }
+                if (loggedInUser.id === memberId) {
+                     loggedInUser = { ...loggedInUser, ...updateData };
+                }
+                
+                showAlert('✅ Profiliniz başarıyla güncellendi.', 'success');
+                closeModal('profileModal');
+                
+                // Refresh data silently
+                await refreshPortalData(true);
+                
+                // Refresh the details view with fresh data
+                showMemberDetails(memberId);
+            } catch (error) {
+                showAlert('Profil güncellenirken hata oluştu.', 'danger');
+                console.error(error);
+            }
+        }
+
+
+        // --- HELPER FUNCTIONS ---
+        function showAlert(message, type = 'info') {
+            const alertContainer = document.createElement('div');
+            alertContainer.innerHTML = message.replace(/\n/g, '<br>');
+            alertContainer.style.cssText = `position: fixed; top: 20px; right: 20px; z-index: 2000; padding: 15px; border-radius: 8px; color: white; background-color: ${type === 'success' ? 'var(--success-color)' : type === 'danger' ? 'var(--danger-color)' : 'var(--primary-color)'}; box-shadow: 0 5px 15px rgba(0,0,0,0.2); transition: opacity 0.5s ease; opacity: 1;`;
+            document.body.appendChild(alertContainer);
+            setTimeout(() => {
+                alertContainer.style.opacity = '0';
+                setTimeout(() => {  
+                    if(document.body.contains(alertContainer)) {
+                        document.body.removeChild(alertContainer)
+                    }
+                }, 500);
+            }, 3000);
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        function capitalize(str) {
+            if (!str) return '';
+            return str.charAt(0).toUpperCase() + str.slice(1);
+        }
+        function getStatusText(status) {
+            const statuses = { pending: 'Bekliyor', active: 'Aktif', expired: 'Pasif' };
+            return statuses[status] || 'Bilinmiyor';
+        }
+        function getPaymentStatusText(status) {
+            const statuses = { paid: 'Ödendi', unpaid: 'Ödenmedi', overdue: 'Gecikmiş' };
+            return statuses[status] || 'Bilinmiyor';
+        }
+        function formatDate(dateString) {
+            if (!dateString) return '';
+            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+            if (dateString.length === 10 && dateString.includes('-')) {
+                return new Date(dateString + 'T00:00:00').toLocaleDateString('tr-TR', options);
+            }
+            return new Date(dateString).toLocaleDateString('tr-TR', options);
+        }
+
+        // --- EXPOSE FUNCTIONS TO GLOBAL SCOPE ---
+        window.handleLogout = handleLogout;
+        window.showMemberDetails = showMemberDetails;
+        window.renderDashboard = renderDashboard;
+        window.openProfileModal = openProfileModal;
+        window.handleProfileUpdate = handleProfileUpdate;
+        window.closeModal = closeModal;
+    </script>
+
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #6c757d;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --light-color: #f8f9fa;
+            --dark-color: #343a40;
+            --border-color: #dee2e6;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--light-color);
+            color: var(--dark-color);
+            line-height: 1.6;
+        }
+
+        /* --- Login Screen --- */
+        #login-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        #login-box {
+            background: white;
+            padding: 50px 40px;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+            width: 90%;
+            max-width: 450px;
+            animation: fadeInUp 0.6s ease-out;
+        }
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        #login-box .logo-container {
+            margin-bottom: 30px;
+        }
+        #login-box .logo-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+            margin-bottom: 20px;
+        }
+        #login-box h2 {
+            margin-bottom: 10px;
+            color: var(--dark-color);
+            font-weight: 700;
+            font-size: 28px;
+        }
+        #login-box .subtitle {
+            color: #6c757d;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        #login-box .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        #login-box .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #495057;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        #login-box .input-wrapper {
+            position: relative;
+        }
+        #login-box .input-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6c757d;
+            font-size: 18px;
+        }
+        #login-box .form-control {
+            width: 100%;
+            padding: 14px 15px 14px 45px;
+            border: 2px solid #e0e7ff;
+            border-radius: 10px;
+            font-size: 15px;
+            transition: all 0.3s ease;
+            background: #f8f9ff;
+        }
+        #login-box .form-control:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+            background: white;
+            transform: translateY(-2px);
+        }
+        #login-box .form-control::placeholder {
+            color: #a0aec0;
+        }
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2);
+        }
+        #login-box .btn-primary {
+            width: 100%;
+            padding: 15px 20px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            margin-top: 10px;
+        }
+        #login-box .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+        #login-box .btn-primary:active {
+            transform: translateY(0);
+        }
+        #login-box .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        #login-box #login-error {
+            margin-top: 15px;
+            padding: 12px;
+            background: #fee;
+            color: #c33;
+            border-radius: 8px;
+            font-size: 14px;
+            display: none;
+        }
+        #login-box #login-error:not(:empty) {
+            display: block;
+        }
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-primary { background: var(--primary-color); color: white; width: 100%;}
+        .btn-primary:hover:not(:disabled) { background: #0069d9; }
+        .btn:disabled { background: #ccc; cursor: not-allowed; }
+
+        #login-error {
+            color: var(--danger-color);
+            margin-top: 15px;
+            font-size: 0.9em;
+            display: none;
+        }
+
+        /* --- Main Portal Content --- */
+        #main-content { display: none; }
+
+        .portal-header {
+            background: white;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .portal-header h1 { font-size: 1.5em; font-weight: 600; }
+        #welcome-message { font-size: 0.9em; color: #555; }
+        .btn-secondary { background: #6c757d; color: white; }
+        .btn-sm { padding: 8px 12px; font-size: 0.9em; }
+
+        #portal-content {
+            padding: 30px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .section-title {
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            font-weight: 600;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 10px;
+        }
+
+        /* Dashboard Cards */
+        .dashboard-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .member-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.07);
+            border-left: 5px solid var(--primary-color);
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            flex-direction: column;
+        }
+        .member-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+        .member-card h3 { margin-bottom: 15px; color: var(--primary-color); }
+        .member-card p { margin-bottom: 8px; flex-grow: 1; }
+        .member-card .btn { margin-top: auto; align-self: flex-start; }
+
+        /* Details View */
+        .details-header {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+        .details-header h2 { font-size: 1.8em; font-weight: 600; }
+        .back-btn { margin-right: auto; }
+        .profile-btn { margin-left: auto; }
+        
+        .details-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            align-items: start;
+        }
+        .card.full-width { grid-column: 1 / -1; }
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.07);
+            border: 1px solid var(--border-color);
+        }
+        .card-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .schedule-list { display: flex; flex-direction: column; gap: 10px; }
+        .schedule-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            background: var(--light-color);
+            border-radius: 6px;
+            transition: background-color 0.2s, border-left 0.2s;
+            border-left: 3px solid transparent;
+        }
+        .schedule-item.today {
+            background-color: #e6f7ff;
+            border-left: 3px solid var(--primary-color);
+            font-weight: bold;
+        }
+        .contact-info p { margin-bottom: 10px; }
+
+        .table-container { overflow-x: auto; }
+        .data-table { width: 100%; border-collapse: collapse; }
+        .data-table th, .data-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .data-table thead th {
+            background: var(--primary-color);
+            color: white;
+            font-weight: 600;
+        }
+        .data-table tbody tr:last-child td { border-bottom: none; }
+        .data-table tbody tr:hover { background: #f8f9fa; }
+        
+        /* Badges */
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .status-pending { background: #fff3cd; color: #856404; }
+        .status-active, .status-present { background: #d4edda; color: #155724; }
+        .status-expired, .status-absent, .status-overdue { background: #f8d7da; color: #721c24; }
+        .status-paid { background: #d1ecf1; color: #0c5460; }
+        .status-unpaid { background: #f5c6cb; color: #721c24; }
+        
+        /* Period Cards */
+        .period-card {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 5px solid var(--primary-color);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        
+        .period-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .period-header h3 {
+            margin: 0;
+            color: var(--primary-color);
+            font-size: 1.3em;
+        }
+        
+        .period-dates {
+            margin: 5px 0 0 0;
+            color: #666;
+            font-size: 0.95em;
+        }
+        
+        .lesson-badge {
+            background: #e3f2fd;
+            padding: 3px 10px;
+            border-radius: 15px;
+            margin-left: 10px;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+        
+        .period-stats {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .stat-value.success {
+            color: var(--success-color);
+        }
+        
+        .stat-value.danger {
+            color: var(--danger-color);
+        }
+        
+        .stat-value.info {
+            color: var(--primary-color);
+        }
+        
+        .stat-label {
+            font-size: 0.8em;
+            color: #666;
+        }
+        
+        .period-card .table-container {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .period-card .data-table {
+            background: white;
+        }
+        
+        .period-card .empty-state-small {
+            text-align: center;
+            padding: 30px;
+            color: #999;
+            background: white;
+            border-radius: 8px;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0; top: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            position: relative;
+        }
+        .modal-content .close {
+            position: absolute;
+            top: 15px; right: 20px;
+            font-size: 28px;
+            font-weight: bold;
+            color: #aaa;
+            cursor: pointer;
+        }
+        .modal-content .close:hover { color: var(--danger-color); }
+        .modal-content h3 { margin-bottom: 20px; }
+        .modal .form-group { margin-bottom: 15px; }
+
+        /* States */
+        .loading, .empty-state-small, .error-state, .info-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+        }
+        .error-state {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 12px;
+            margin: 20px;
+        }
+        .error-state h3 {
+            color: #856404;
+            margin-bottom: 15px;
+        }
+        .error-state p {
+            color: #856404;
+            margin-bottom: 20px;
+        }
+        .loading { display: flex; justify-content: center; align-items: center; gap: 10px; }
+        .spinner {
+            width: 24px; height: 24px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        
+        /* Responsive */
+        @media (max-width: 992px) {
+            .details-grid { grid-template-columns: 1fr; }
+            .period-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .period-stats {
+                width: 100%;
+                justify-content: space-around;
+            }
+        }
+        @media (max-width: 768px) {
+            .portal-header { flex-direction: column; gap: 10px; }
+            #portal-content { padding: 20px; }
+            .dashboard-cards { grid-template-columns: 1fr; }
+            .period-card {
+                padding: 15px;
+            }
+            .period-header h3 {
+                font-size: 1.1em;
+            }
+            .stat-value {
+                font-size: 1.2em;
+            }
+            /* Mobilde tablo sütunlarını küçült */
+            .period-card .data-table th:first-child,
+            .period-card .data-table td:first-child {
+                width: 40% !important;
+                font-size: 0.85em;
+            }
+            .period-card .data-table th:nth-child(3),
+            .period-card .data-table td:nth-child(3) {
+                width: 40% !important;
+            }
+            .period-card .data-table th:nth-child(2),
+            .period-card .data-table td:nth-child(2) {
+                width: 20% !important;
+            }
+        }
+
+    </style>
+</head>
+<body style="visibility: hidden;">
+
+    <!-- Login Overlay -->
+    <div id="login-overlay">
+        <div style="max-width: 500px; width: 100%; padding: 20px;">
+            <!-- Back to Home Link -->
+            <a href="index" style="display: inline-flex; align-items: center; color: white; text-decoration: none; margin-bottom: 20px; font-weight: 600; transition: opacity 0.3s;">
+                <span style="margin-right: 8px;">←</span> Ana Sayfaya Dön
+            </a>
+            
+            <div id="login-box">
+                <div class="logo-container">
+                    <div class="logo-icon">🏆</div>
+                    <h2>Spor<span style="color: #667eea;">cum</span></h2>
+                    <p class="subtitle">Üye Portalı</p>
+                </div>
+                <form id="login-form">
+                    <div class="form-group">
+                        <label for="username">📱 Telefon Numarası</label>
+                        <div class="input-wrapper">
+                            <span class="input-icon">📞</span>
+                            <input type="tel" id="username" class="form-control" placeholder="05xxxxxxxxx" maxlength="11" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">🔐 Şifre</label>
+                        <div class="input-wrapper">
+                            <span class="input-icon">🔑</span>
+                            <input type="password" id="password" class="form-control" placeholder="Şifrenizi girin" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">🚀 Giriş Yap</button>
+                    <p id="login-error"></p>
+                </form>
+            </div>
+            
+            <!-- Footer -->
+            <div style="text-center mt-6 text-white text-sm margin-top: 20px; text-align: center; color: rgba(255,255,255,0.8);">
+                <p>&copy; 2024 Sporcum Teknoloji A.Ş.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div id="main-content">
+        <header class="portal-header">
+            <h1>🏆 Sporcum - Üye Portalı</h1>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span id="welcome-message"></span>
+                <button class="btn btn-secondary btn-sm" onclick="handleLogout()">🚪 Çıkış Yap</button>
+            </div>
+        </header>
+        <main id="portal-content">
+            <!-- Content will be rendered here by JavaScript -->
+        </main>
+    </div>
+
+    <!-- Profile Edit Modal -->
+    <div id="profileModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('profileModal')">&times;</span>
+            <h3>Profili Düzenle</h3>
+            <form id="profileForm" onsubmit="handleProfileUpdate(event)">
+                <input type="hidden" name="memberId">
+                <div class="form-group" id="studentNameGroup">
+                    <label for="profileResitOlmayanAdSoyad">Öğrenci Adı Soyadı</label>
+                    <input type="text" id="profileResitOlmayanAdSoyad" name="resitOlmayanAdSoyad" class="form-control">
+                </div>
+                <div class="form-group" id="adSoyadGroup">
+                    <label for="profileAdSoyad">Veli Adı Soyadı</label>
+                    <input type="text" id="profileAdSoyad" name="adSoyad" class="form-control" required>
+                </div>
+                 <div class="form-group" id="birthDateGroup">
+                    <label for="profileBirthDate">Doğum Tarihi</label>
+                    <input type="date" id="profileBirthDate" name="studentBirthDate" class="form-control">
+                </div>
+                <div class="form-group" id="telefonGroup">
+                     <label for="profileTelefon">Telefon</label>
+                     <input type="tel" id="profileTelefon" name="telefon" class="form-control" readonly>
+                </div>
+                <div class="form-group" id="veli2AdSoyadGroup">
+                    <label for="profileVeli2AdSoyad">Veli 2 Adı Soyadı</label>
+                    <input type="text" id="profileVeli2AdSoyad" name="veli2AdSoyad" class="form-control">
+                </div>
+                <div class="form-group" id="telefon2Group">
+                    <label for="profileTelefon2">Veli 2 Telefon</label>
+                    <input type="tel" id="profileTelefon2" name="telefon2" class="form-control">
+                </div>
+                 <hr style="margin: 20px 0;">
+                <div class="form-group">
+                    <label for="newPassword">Yeni Şifre - Veli 1 (değiştirmek istemiyorsanız boş bırakın)</label>
+                    <input type="password" id="newPassword" name="newPassword" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="confirmPassword">Yeni Şifre Tekrar - Veli 1</label>
+                    <input type="password" id="confirmPassword" name="confirmPassword" class="form-control">
+                </div>
+                <div class="form-group" id="password2Group" style="display: none;">
+                    <label for="newPassword2">Yeni Şifre - Veli 2 (değiştirmek istemiyorsanız boş bırakın)</label>
+                    <input type="password" id="newPassword2" name="newPassword2" class="form-control">
+                </div>
+                <div class="form-group" id="confirmPassword2Group" style="display: none;">
+                    <label for="confirmPassword2">Yeni Şifre Tekrar - Veli 2</label>
+                    <input type="password" id="confirmPassword2" name="confirmPassword2" class="form-control">
+                </div>
+                <div style="display:flex; gap: 10px; margin-top: 20px;">
+                    <button type="submit" class="btn btn-success">✅ Güncelle</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('profileModal')">İptal</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</body>
+</html>
+
+
+
+
