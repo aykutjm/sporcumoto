@@ -10575,7 +10575,7 @@ Görev detaylarını kontrol ediniz.</textarea>
                                     <div class="payment-details-header">
                                         <h4>Ödeme Planı</h4>
                                         <div style="display: flex; gap: 8px;">
-                                            ${currentUser.permissions.edit_payments ? `
+                                            ${currentUser?.permissions?.edit_payments ? `
                                                 <button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); deleteSelectedPayments('${preReg.id}')">🗑️ Seçilenleri Sil</button>
                                                 <button class="btn btn-success btn-sm" onclick="event.stopPropagation(); openPaymentEditModal('${preReg.id}', null, true)">+ Yeni Taksit Ekle</button>
                                             ` : ''}
@@ -21389,7 +21389,7 @@ Görev detaylarını kontrol ediniz.</textarea>
                  return;
              }
 
-             if (!currentUser.permissions.view_payments) {
+             if (!currentUser?.permissions?.view_payments) {
                   const paymentsBtn = document.querySelector('.nav-btn[onclick*="payments"]');
                   if (paymentsBtn) paymentsBtn.style.display = 'none';
              }
@@ -22048,7 +22048,7 @@ Görev detaylarını kontrol ediniz.</textarea>
         }
         
         function viewMemberPayments(memberId) {
-            if (!currentUser.permissions.view_payments) {
+            if (!currentUser?.permissions?.view_payments) {
                 return showAlert('Ödemeleri görüntüleme yetkiniz yok.', 'warning');
             }
             const member = members.find(m => m.id === memberId);
@@ -22064,7 +22064,7 @@ Görev detaylarını kontrol ediniz.</textarea>
             let planHtml = `<div style="background: #e9ecef; padding: 15px; border-radius: 8px; margin-bottom: 20px;"><p><strong>Dönem:</strong> ${formatDate(preReg.periodStart)} - ${formatDate(preReg.periodEnd)}</p></div>`;
             
             // ✅ Yetki kontrolü ile butonları göster
-            if (currentUser.permissions.edit_payments) {
+            if (currentUser?.permissions?.edit_payments) {
                 planHtml += `<div style="margin-bottom: 15px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                     <button class="btn btn-sm btn-secondary" onclick="selectAllPayments('${preReg.id}', true)">✓ Tümünü Seç</button>
                     <button class="btn btn-sm btn-secondary" onclick="selectAllPayments('${preReg.id}', false)">✗ Seçimi Kaldır</button>
@@ -22075,7 +22075,7 @@ Görev detaylarını kontrol ediniz.</textarea>
             
             planHtml += renderPaymentDetailsTable(preReg);
             
-            if (currentUser.permissions.edit_payments) {
+            if (currentUser?.permissions?.edit_payments) {
                 planHtml += `<div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px; gap: 10px;">
                     <button class="btn btn-danger" onclick="deleteSelectedPayments('${preReg.id}')">🗑️ Seçilenleri Sil</button>
                     <button class="btn btn-success" onclick="openPaymentEditModal('${preReg.id}', null, true)">➕ Yeni Taksit Ekle</button>
@@ -22087,7 +22087,7 @@ Görev detaylarını kontrol ediniz.</textarea>
         }
 
         function openPaymentEditModal(preRegId, paymentNumber, isNew = false) {
-            if (!currentUser.permissions.edit_payments) {
+            if (!currentUser?.permissions?.edit_payments) {
                 return showAlert('Bu işlem için yetkiniz bulunmamaktadır.', 'warning');
             }
             closeModal('paymentPlanModal');
@@ -22150,7 +22150,7 @@ Görev detaylarını kontrol ediniz.</textarea>
             if (paymentSchedule.length === 0) return `<p class="empty-state">Ödeme planı yok.</p>`;
             
             // ✅ Yetki kontrolü - checkbox kolonunu göster/gizle
-            const hasEditPermission = currentUser.permissions.edit_payments;
+            const hasEditPermission = currentUser?.permissions?.edit_payments;
             const checkboxHeader = hasEditPermission ? `<th style="width: 40px;"><input type="checkbox" onchange="selectAllPayments('${preReg.id}', this.checked)"></th>` : '';
             const tableHeaders = `<thead><tr>${checkboxHeader}<th>Dönem</th><th>Dersler ve Tarih Aralığı</th><th>Tutar</th><th>Son Ödeme</th><th>Ödeme Tarihi</th><th>Durum</th><th style="width: 150px;">İşlemler</th></tr></thead>`;
 
@@ -22190,7 +22190,7 @@ Görev detaylarını kontrol ediniz.</textarea>
                 }
                 
                 // Edit button (if has permission)
-                if(currentUser.permissions.edit_payments){
+                if(currentUser?.permissions?.edit_payments){
                     dropdownItems.push(`<button onclick="event.stopPropagation(); window.openPaymentEditModal('${preReg.id}', ${p.paymentNumber})">✏️ Düzenle</button>`);
                     dropdownItems.push(`<button class="danger" onclick="event.stopPropagation(); window.deletePaymentFromSchedule('${preReg.id}', ${p.paymentNumber})">🗑️ Sil</button>`);
                 }
@@ -23137,7 +23137,7 @@ Görev detaylarını kontrol ediniz.</textarea>
             let menuHtml = '';
             if (type === 'prereg') {
                 let paymentLink = '';
-                if (currentUser.permissions.view_payments) {
+                if (currentUser?.permissions?.view_payments) {
                     paymentLink = `<a href="#" onclick="viewPaymentPlan('${preRegId}')">💰 Ödeme Planı Görüntüle</a>`;
                 }
                 menuHtml = `${paymentLink}<a href="#" onclick="openPreRegEditModal('${preRegId}')">✏️ Kaydı Düzenle</a><a href="#" class="danger" onclick="deleteItem('preRegistrations', '${preRegId}')">🗑️ Kaydı Sil</a>`;
