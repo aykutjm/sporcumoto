@@ -2192,205 +2192,32 @@
                     document.getElementById('contract-checkbox1-text').value = data.checkbox1Text || 'Üyelik sözleşmesini okudum, anladım ve kabul ediyorum.';
                     document.getElementById('contract-checkbox2-text').value = data.checkbox2Text || 'Üyeliğiniz iptal edilene kadar devam etmektedir. Her ayın 14\'ü, yeni dönem için kayıt iptali yapılabilecek son gündür. Bu tarihe kadar iptal edilmeyen kayıtlar, devam eden dönem için geçerli sayılır.';
                     
-                    // Branş bazlı IBAN bilgilerini yükle
-                    // Tenis IBAN
-                    if (data.ibanTenis) {
-                        document.getElementById('iban_tenis_1_name').value = data.ibanTenis.iban1?.name || '';
-                        document.getElementById('iban_tenis_1_number').value = data.ibanTenis.iban1?.number || '';
-                        document.getElementById('iban_tenis_2_name').value = data.ibanTenis.iban2?.name || '';
-                        document.getElementById('iban_tenis_2_number').value = data.ibanTenis.iban2?.number || '';
-                    } else {
-                        document.getElementById('iban_tenis_1_name').value = '';
-                        document.getElementById('iban_tenis_1_number').value = '';
-                        document.getElementById('iban_tenis_2_name').value = '';
-                        document.getElementById('iban_tenis_2_number').value = '';
-                    }
+                                    // Dinamik branş bazlı IBAN bilgilerini topla
+                contractData.branchPayments = {};
+                
+                branches.forEach(branch => {
+                    const branchId = branch.id;
+                    const ibanInput = document.getElementById(`iban_${branchId}`);
+                    const nameInput = document.getElementById(`iban_name_${branchId}`);
+                    const instructionsInput = document.getElementById(`payment_instructions_${branchId}`);
                     
-                    // Yüzme IBAN
-                    if (data.ibanYuzme) {
-                        document.getElementById('iban_yuzme_1_name').value = data.ibanYuzme.iban1?.name || '';
-                        document.getElementById('iban_yuzme_1_number').value = data.ibanYuzme.iban1?.number || '';
-                        document.getElementById('iban_yuzme_2_name').value = data.ibanYuzme.iban2?.name || '';
-                        document.getElementById('iban_yuzme_2_number').value = data.ibanYuzme.iban2?.number || '';
-                    } else {
-                        document.getElementById('iban_yuzme_1_name').value = '';
-                        document.getElementById('iban_yuzme_1_number').value = '';
-                        document.getElementById('iban_yuzme_2_name').value = '';
-                        document.getElementById('iban_yuzme_2_number').value = '';
+                    if (ibanInput || nameInput || instructionsInput) {
+                        const ibanValue = ibanInput?.value?.trim() || '';
+                        const nameValue = nameInput?.value?.trim() || '';
+                        const instructionsValue = instructionsInput?.value?.trim() || '';
+                        
+                        if (ibanValue || nameValue || instructionsValue) {
+                            contractData.branchPayments[branchId] = {
+                                branchName: branch.name,
+                                iban: ibanValue,
+                                name: nameValue,
+                                paymentInstructions: instructionsValue
+                            };
+                        }
                     }
-                } else {
-                    // Varsayılan şablon (kayit.html'den alındı)
-                    document.getElementById('contractTemplate').value = `<h4>ÜYELİK SÖZLEŞMESİ</h4>
-<p><strong>1-) TARAFLAR</strong><br>
-<strong>A-KULÜP</strong><br>
-Adı-Soyadı : [Yetkili Adı Soyadı]<br>
-Ünvanı : [Kulüp Adı]<br>
-Adres : [Kulüp Adresi]<br>
-Vergi No : [Vergi Numarası]<br>
-Telefon : [Kulüp Telefon]<br>
-E-mail : [Kulüp E-posta]<br>
-Bu sözleşmede bundan sonra "EĞİTMEN/KULÜP" olarak anılacaktır.<br>
-<strong>B-ÜYE/VELİ</strong><br>
-Adı-Soyadı : {UYE_AD_SOYAD}<br>
-Doğum Tarihi : {UYE_DOGUM_TARIHI}<br>
-Adres : {UYE_ADRES}<br>
-TCKN : {UYE_TCKN}<br>
-Telefon : {UYE_TELEFON}<br>
-Bu sözleşmede bundan sonra "ÜYE/VELİ" olarak anılacaktır. Üye ve varsa veliye ait bilgiler yukarıda yer alan kısma ayrı ayrı yazılarak doldurulacaktır.</p>
-<p>Üye/Veli işbu sözleşmeyi onaylaması sırasında Eğitmen tarafından kendisinden talep edilen her türlü bilgiyi eksiksiz ve doğru olarak Eğitmene vermeyi kabul etmektedir. Üye/Veli, eğitimler sırasında Eğitmene bildirdiği bilgilerin doğruluğundan bizzat sorumludur.</p>
-<p>Üye/Veli, işbu sözleşmeye onayı esnasında beyan etmiş olduğu cep telefonu numarası ve e-posta adresinin Eğitmen tarafından yapılacak her türlü bildirim için geçerli tebligat mecraları sayılacağını, bu cep telefonu numarası ve e-posta adresinin kullanımı ile ilgili her türlü yetkinin kendisinde olduğunu, ilgili cep telefonu numarası ve e-posta adresinin 3. kişiler tarafından kullanıldığı şüphesinin varlığı halinde bu durumu ve her halde cep telefonu numarası ve e-posta adresinde meydana gelen değişiklikleri Eğitmene bildirmekle yükümlü olduğunu kabul ve taahhüt eder.</p>
-
-<p><strong>2-) KONU</strong><br>
-İşbu üyelik sözleşmesi, üyelik işlemlerinin gerçekleştirilmesi ile işbu sözleşmenin onaylanması suretiyle, Eğitmen tarafından sunulacak hizmetin şartlarını ve tarafların karşılıklı hak ve yükümlülüklerini düzenlemektedir.</p>
-
-<p><strong>3-) SÜRE</strong><br>
-Sözleşme süresi aylık ve 6 aylık periyotlar halinde düzenlenmekte olup; kayıtlar sözleşmenin biteceği ayın 15'inden önce iptal edilmediği takdirde aylık veya 6 aylık olarak uzatılmış sayılmaktadır. Kayıt silinmediği takdirde yeni döneme ilişkin ücret Üye/Veli tarafından kulübe ödenecektir.</p>
-
-<p><strong>4-) ÜCRET</strong><br>
-Üyelik bedeli, Üyelik satış formunda belirtilen üyelik paketine göre belirlenir ve işbu bedel Üye/Veli tarafından ödenecektir.</p>
-
-<p><strong>5-) ÖDEMELER</strong><br>
-Ödemelerin her ayın 20'sine kadar belirtilen hesaba yapılması gerekmektedir. Dönem tarihlerine göre eksik ya da fazla ödeme durumu oluşabilir. Ödemelerin zamanında yapılmaması durumunda; Üye/Veli, yapacağı ödemenin %25'i tutarında cezai şart ödemeyi kabul ve taahhüt eder.</p>
-<p>Yapılan ödemeler, derslere katılım taahhüdü olarak kabul edilir. Üyenin derslere katılamaması sebebiyle ücret iadesi yapılmaz.</p>
-
-<p><strong>6-) ÜYELİK İPTALLERİ</strong><br>
-Her ayın 14'ü kayıt sildirme için son gündür. Bu tarihler sonrasında yapılan kayıt sildirmelerde yeni dönem ücreti tahsil edilir. Kulübe veya kulüp tesislerine zarar verici davranışlarda bulunulması durumunda kulüp üyeliği sonlandırılabilir.</p>
-
-{AIDAT_TAKVIMI}
-
-<p><strong>7-) EĞİTİME İLİŞKİN KURALLAR</strong><br>
-A) Üyelik Şartları ile Üye/Velinin Hak ve Yükümlülükleri<br>
-1) Eğitmen, her türlü üyelik talebini hiçbir gerekçe göstermeksizin tek taraflı olarak reddetme hakkına sahiptir.<br>
-2) Eğitmenden, suç işlememiş ve herhangi bir yüz kızartıcı suçtan sabıka kaydı bulunmayan T.C. vatandaşları ile yabancı uyruklu kişiler ders alabilir.<br>
-3) Üye/Veli, üyelik için gerekli olan her türlü belgeyi eksiksiz ve doğru bir şekilde temin edecektir.<br>
-4) Üyelerin spor faaliyetine katılmak için gerekli sağlık şartlarını taşıyıp taşımadıkları, tıbbi kontrollerini yaptırıp yaptırmadıkları sorumluluğu Üye/Veliye aittir.<br>
-5) Üyelerin, ders veya aktivitelerden faydalanmamaları halinde dahi belirlenen bedelleri zamanında ve tam olarak ödemeleri zorunludur.<br>
-6) Üye/Veli, kendisinin veya misafirlerinin şahsi kusurları, dikkatsizliği veya ihmalleri ile kulübe veya 3. kişilere ait eşyalar üzerinde meydana getirecekleri tüm hasar ve zarardan sorumludur.</p>
-
-<p>B) KULÜP KURALLARI<br>
-a) Grup dersleri aylık 8 derstir.<br>
-b) Grup derslerinde ders bir kez işlendiğinden, üyenin katılamadığı dersler için telafi yapılmaz.<br>
-c) Özel ders paketleri 1 aylık süreyle geçerlidir. Bu süre içinde kullanılmayan ders hakları bir sonraki aya devredilmez.<br>
-d) Spor branşlarında herhangi bir kaza, yaralanma veya sağlık problemi durumunda sorumluluk tamamen Üye/Veliye aittir.<br>
-e) Üyelerin derse zamanında, uygun kıyafetle ve hazır şekilde gelmesi Üye/Velilerin sorumluluğundadır.</p>
-
-<p>C) GENEL KURALLAR<br>
-1) Kulüp bünyesinde Üye/Veliler genel nezaket kurallarına uymakla yükümlüdürler. Kort içinde veya dışında nezaket kurallarına uymayan davranışlarda bulunan, huzuru kaçıran, hakaret, küfür kullanan Üye/Velilerin Üye/Velilikleri herhangi bir uyarıya gerek kalmadan resen iptal edilebilir.<br>
-2) Kayıp eşyalardan Kulüp sorumlu değildir.<br>
-3) Kulüp içine dışarıdan yiyecek içecek getirmek yasaktır.<br>
-4) Kulüp sınırları içerisinde sigara içmek yasaktır.</p>
-
-<p><strong>8-) KİŞİSEL VERİLERİN İŞLENMESİ</strong><br>
-Üye/Veli, işbu sözleşmeye taraf olma suretiyle, verdiği tüm bilgilerin ve kişisel verilerinin, KVKK kapsamında işlenmesine açıkça rıza gösterdiğini kabul eder.</p>
-
-<p><strong>9-) SON HÜKÜMLER</strong><br>
-1) Bu anlaşmanın uygulanmasından kaynaklanan tüm ihtilaflar yerel mahkemeler ve icra dairelerinde çözülecektir.<br>
-2) Üye/Veli, adres ve iletişim bilgilerindeki değişiklikleri Eğitmene bildirmekle yükümlüdür.</p>
-
-<p><strong>Sözleşme Tarihi:</strong> {TARIH}</p>
-
-{OGRENCI_BILGILERI}
-
-<p>ÜYE/VELİ<br>
-Adı Soyadı: {UYE_AD_SOYAD}<br>
-İmza: _________________</p>
-
-<p>EĞİTMEN/KULÜP<br>
-Adı Soyadı: [Yetkili Adı Soyadı]<br>
-İmza: _________________</p>`;
-                    document.getElementById('contract-enabled').checked = false;
-                    
-                    // Varsayılan IBAN'ları temizle
-                    document.getElementById('iban_tenis_1_name').value = '';
-                    document.getElementById('iban_tenis_1_number').value = '';
-                    document.getElementById('iban_tenis_2_name').value = '';
-                    document.getElementById('iban_tenis_2_number').value = '';
-                    document.getElementById('iban_yuzme_1_name').value = '';
-                    document.getElementById('iban_yuzme_1_number').value = '';
-                    document.getElementById('iban_yuzme_2_name').value = '';
-                    document.getElementById('iban_yuzme_2_number').value = '';
-                }
+                });
                 
-            } catch (error) {
-                console.error('Error loading contract template:', error);
-                showAlert('Sözleşme şablonu yüklenirken hata oluştu.', 'danger');
-            }
-        }
-        
-        // ✅ Sözleşme Şablonu Kaydetme
-        window.saveContractTemplate = async function(event) {
-            event.preventDefault();
-            
-            const form = event.target;
-            const contractText = form.contractText.value.trim();
-            const enabled = form.contractEnabled.checked;
-            
-            if (!contractText) {
-                showAlert('Lütfen sözleşme metnini girin.', 'warning');
-                return;
-            }
-            
-            try {
-                const contractData = {
-                    text: contractText,
-                    enabled: enabled,
-                    clubId: currentClubId,
-                    updatedAt: new Date().toISOString(),
-                    updatedBy: currentUser.fullName || currentUser.email,
-                    
-                    // Sayfa başlıkları
-                    pageTitle: form.pageTitle.value.trim(),
-                    pageSubtitle: form.pageSubtitle.value.trim(),
-                    
-                    // Onay checkbox metinleri
-                    checkbox1Text: form.checkbox1Text.value.trim(),
-                    checkbox2Text: form.checkbox2Text.value.trim()
-                };
-                
-                // Branş bazlı IBAN bilgileri
-                // Tenis IBAN
-                const tenisIban1Name = document.getElementById('iban_tenis_1_name').value.trim();
-                const tenisIban1Number = document.getElementById('iban_tenis_1_number').value.trim();
-                const tenisIban2Name = document.getElementById('iban_tenis_2_name').value.trim();
-                const tenisIban2Number = document.getElementById('iban_tenis_2_number').value.trim();
-                
-                if (tenisIban1Name || tenisIban1Number || tenisIban2Name || tenisIban2Number) {
-                    contractData.ibanTenis = {};
-                    if (tenisIban1Name || tenisIban1Number) {
-                        contractData.ibanTenis.iban1 = {
-                            name: tenisIban1Name,
-                            number: tenisIban1Number
-                        };
-                    }
-                    if (tenisIban2Name || tenisIban2Number) {
-                        contractData.ibanTenis.iban2 = {
-                            name: tenisIban2Name,
-                            number: tenisIban2Number
-                        };
-                    }
-                }
-                
-                // Yüzme IBAN
-                const yuzmeIban1Name = document.getElementById('iban_yuzme_1_name').value.trim();
-                const yuzmeIban1Number = document.getElementById('iban_yuzme_1_number').value.trim();
-                const yuzmeIban2Name = document.getElementById('iban_yuzme_2_name').value.trim();
-                const yuzmeIban2Number = document.getElementById('iban_yuzme_2_number').value.trim();
-                
-                if (yuzmeIban1Name || yuzmeIban1Number || yuzmeIban2Name || yuzmeIban2Number) {
-                    contractData.ibanYuzme = {};
-                    if (yuzmeIban1Name || yuzmeIban1Number) {
-                        contractData.ibanYuzme.iban1 = {
-                            name: yuzmeIban1Name,
-                            number: yuzmeIban1Number
-                        };
-                    }
-                    if (yuzmeIban2Name || yuzmeIban2Number) {
-                        contractData.ibanYuzme.iban2 = {
-                            name: yuzmeIban2Name,
-                            number: yuzmeIban2Number
-                        };
-                    }
-                }
+                console.log('💾 Kaydedilecek IBAN verileri:', contractData.branchPayments);
                 
                 await window.firebase.setDoc(
                     window.firebase.doc(window.db, 'settings', `contract_${currentClubId}`),
@@ -28965,7 +28792,6 @@ Görev detaylarını kontrol ediniz.</textarea>
                         <button class="settings-tab active" onclick="switchSettingsTab('club')">🏢 Kulüp Bilgileri</button>
                         <button class="settings-tab" onclick="switchSettingsTab('general')">⚙️ Genel Ayarlar</button>
                         <button class="settings-tab" onclick="switchSettingsTab('branches')">🏃 Branş Yönetimi</button>
-                        <button class="settings-tab" onclick="switchSettingsTab('expense-categories')">💸 Gider Kategorileri</button>
                         <button class="settings-tab" onclick="switchSettingsTab('users')">👥 Yönetici Yönetimi</button>
                         <button class="settings-tab" onclick="switchSettingsTab('contract')">📄 Sözleşme Şablonu</button>
                         <button class="settings-tab" onclick="switchSettingsTab('templates')">📝 Üye Mesaj Şablonları</button>
