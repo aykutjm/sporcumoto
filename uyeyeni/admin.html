@@ -2347,50 +2347,50 @@ Adı Soyadı: [Yetkili Adı Soyadı]<br>
                     checkbox2Text: form.checkbox2Text.value.trim()
                 };
                 
-                // Branş bazlı IBAN bilgileri
-                // Tenis IBAN
-                const tenisIban1Name = document.getElementById('iban_tenis_1_name').value.trim();
-                const tenisIban1Number = document.getElementById('iban_tenis_1_number').value.trim();
-                const tenisIban2Name = document.getElementById('iban_tenis_2_name').value.trim();
-                const tenisIban2Number = document.getElementById('iban_tenis_2_number').value.trim();
                 
-                if (tenisIban1Name || tenisIban1Number || tenisIban2Name || tenisIban2Number) {
-                    contractData.ibanTenis = {};
-                    if (tenisIban1Name || tenisIban1Number) {
-                        contractData.ibanTenis.iban1 = {
-                            name: tenisIban1Name,
-                            number: tenisIban1Number
-                        };
-                    }
-                    if (tenisIban2Name || tenisIban2Number) {
-                        contractData.ibanTenis.iban2 = {
-                            name: tenisIban2Name,
-                            number: tenisIban2Number
-                        };
-                    }
-                }
+                console.log('💾 saveContractTemplate çalıştı - Form verileri:', contractData);
+                console.log('📦 Mevcut branşlar:', branches);
                 
-                // Yüzme IBAN
-                const yuzmeIban1Name = document.getElementById('iban_yuzme_1_name').value.trim();
-                const yuzmeIban1Number = document.getElementById('iban_yuzme_1_number').value.trim();
-                const yuzmeIban2Name = document.getElementById('iban_yuzme_2_name').value.trim();
-                const yuzmeIban2Number = document.getElementById('iban_yuzme_2_number').value.trim();
+                // Dinamik branş bazlı IBAN bilgilerini topla
+                contractData.branchPayments = {};
                 
-                if (yuzmeIban1Name || yuzmeIban1Number || yuzmeIban2Name || yuzmeIban2Number) {
-                    contractData.ibanYuzme = {};
-                    if (yuzmeIban1Name || yuzmeIban1Number) {
-                        contractData.ibanYuzme.iban1 = {
-                            name: yuzmeIban1Name,
-                            number: yuzmeIban1Number
-                        };
+                branches.forEach(branch => {
+                    const branchId = branch.id;
+                    console.log(`🔍 Branş işleniyor: ${branch.name} (ID: ${branchId})`);
+                    
+                    const ibanInput = document.getElementById(`iban_${branchId}`);
+                    const nameInput = document.getElementById(`iban_name_${branchId}`);
+                    const instructionsInput = document.getElementById(`payment_instructions_${branchId}`);
+                    
+                    console.log(`   iban input: ${ibanInput ? 'bulundu ✅' : 'YOK ❌'}`);
+                    console.log(`   name input: ${nameInput ? 'bulundu ✅' : 'YOK ❌'}`);
+                    console.log(`   instructions input: ${instructionsInput ? 'bulundu ✅' : 'YOK ❌'}`);
+                    
+                    if (ibanInput || nameInput || instructionsInput) {
+                        const ibanValue = ibanInput?.value?.trim() || '';
+                        const nameValue = nameInput?.value?.trim() || '';
+                        const instructionsValue = instructionsInput?.value?.trim() || '';
+                        
+                        console.log(`   📝 Değerler - IBAN: "${ibanValue}", Name: "${nameValue}", Instructions: "${instructionsValue}"`);
+                        
+                        if (ibanValue || nameValue || instructionsValue) {
+                            contractData.branchPayments[branchId] = {
+                                branchName: branch.name,
+                                iban: ibanValue,
+                                name: nameValue,
+                                paymentInstructions: instructionsValue
+                            };
+                            console.log(`   ✅ Branş ödeme bilgisi eklendi!`);
+                        } else {
+                            console.log(`   ⚠️ Tüm alanlar boş, eklenmedi`);
+                        }
+                    } else {
+                        console.log(`   ❌ Hiçbir input bulunamadı!`);
                     }
-                    if (yuzmeIban2Name || yuzmeIban2Number) {
-                        contractData.ibanYuzme.iban2 = {
-                            name: yuzmeIban2Name,
-                            number: yuzmeIban2Number
-                        };
-                    }
-                }
+                });
+                
+                console.log('💾 Kaydedilecek branchPayments:', contractData.branchPayments);
+                console.log('📤 Kaydedilecek TÜM contractData:', contractData);
                 
                 await window.firebase.setDoc(
                     window.firebase.doc(window.db, 'settings', `contract_${currentClubId}`),
