@@ -1,0 +1,104 @@
+═══════════════════════════════════════════════════════════════
+     HIZLI GÜNCELLEME KOMUTU - Tarayıcı Konsoluna Yapıştırın
+═══════════════════════════════════════════════════════════════
+
+⚠️ ÖNEMLİ: Bu komutu admin.html sayfasında çalıştırın!
+
+1. admin.html sayfasına gidin ve giriş yapın
+2. F12 tuşuna basın (veya sağ tık > İncele)
+3. "Console" sekmesine tıklayın
+4. Aşağıdaki kodu TAMAMEN kopyalayın ve yapıştırın
+5. Enter tuşuna basın
+
+═══════════════════════════════════════════════════════════════
+KODU BURADAN KOPYALAYIN ⬇️
+═══════════════════════════════════════════════════════════════
+
+(async function() {
+    const PHONE = '05054771397';
+    const OLD_NAME = 'Elif Beren Karasu';
+    const NEW_NAME = 'Ahmet Tarık Gümüş';
+    
+    try {
+        console.log('🔍 Aranıyor:', PHONE);
+        
+        const phones = [PHONE, PHONE.substring(1), '90' + PHONE.substring(1)];
+        let found = null;
+        
+        for (const p of phones) {
+            const q = window.firebase.query(
+                window.firebase.collection(window.db, 'preRegistrations'),
+                window.firebase.where('phone', '==', p)
+            );
+            const snap = await window.firebase.getDocs(q);
+            
+            if (!snap.empty) {
+                snap.docs.forEach(doc => {
+                    const d = doc.data();
+                    if (d.studentName === OLD_NAME || d.parentName === OLD_NAME) {
+                        found = { id: doc.id, ...d };
+                    }
+                });
+                if (found) break;
+            }
+        }
+        
+        if (!found) {
+            alert('❌ Kayıt bulunamadı: ' + OLD_NAME);
+            return;
+        }
+        
+        console.log('✅ Bulundu:', found.id);
+        
+        const isChild = found.parentName && found.studentName && found.parentName !== found.studentName;
+        const update = isChild ? { studentName: NEW_NAME } : { studentName: NEW_NAME, parentName: NEW_NAME };
+        
+        await window.firebase.updateDoc(
+            window.firebase.doc(window.db, 'preRegistrations', found.id),
+            update
+        );
+        
+        console.log('✅ Ön kayıt güncellendi');
+        
+        // Üye kaydını da güncelle
+        const mq = window.firebase.query(
+            window.firebase.collection(window.db, 'members'),
+            window.firebase.where('preRegistrationId', '==', found.id)
+        );
+        const msnap = await window.firebase.getDocs(mq);
+        
+        if (!msnap.empty) {
+            const mdoc = msnap.docs[0];
+            const mdata = mdoc.data();
+            const mupdate = mdata.Resit_Olmayan_Adi_Soyadi 
+                ? { Resit_Olmayan_Adi_Soyadi: NEW_NAME }
+                : { Ad_Soyad: NEW_NAME };
+            
+            await window.firebase.updateDoc(
+                window.firebase.doc(window.db, 'members', mdoc.id),
+                mupdate
+            );
+            
+            console.log('✅ Üye kaydı güncellendi');
+        }
+        
+        alert('🎉 Başarılı!\n\n' + OLD_NAME + '\n↓\n' + NEW_NAME + '\n\nSayfayı yenileyin (F5)');
+        
+    } catch (err) {
+        console.error('❌ Hata:', err);
+        alert('❌ Hata: ' + err.message);
+    }
+})();
+
+═══════════════════════════════════════════════════════════════
+KODU BURAYA KADAR KOPYALAYIN ⬆️
+═══════════════════════════════════════════════════════════════
+
+📝 Komutu yapıştırdıktan sonra:
+   - Enter tuşuna basın
+   - "Başarılı" mesajını bekleyin
+   - Sayfayı yenileyin (F5)
+   - Değişikliği kontrol edin
+
+═══════════════════════════════════════════════════════════════
+
