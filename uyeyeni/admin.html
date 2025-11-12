@@ -4130,7 +4130,7 @@ Görev detaylarını kontrol ediniz.</textarea>
                 
                 if (!error && clubData) {
                     const balance = clubData.whatsapp_balance || 0;
-                    const sidebarBalance = document.getElementById('whatsapp-balance');
+                    const sidebarBalance = document.getElementById('sidebar-whatsapp-balance');
                     if (sidebarBalance) {
                         sidebarBalance.textContent = balance.toLocaleString('tr-TR');
                     }
@@ -4217,7 +4217,7 @@ Görev detaylarını kontrol ediniz.</textarea>
                 }
                 
                 // Update sidebar balance display
-                const sidebarBalance = document.getElementById('whatsapp-balance');
+                const sidebarBalance = document.getElementById('sidebar-whatsapp-balance');
                 if (sidebarBalance) {
                     sidebarBalance.textContent = currentBalance.toLocaleString('tr-TR');
                 }
@@ -29791,7 +29791,7 @@ Görev detaylarını kontrol ediniz.</textarea>
                 <div id="whatsapp-balance-container" style="text-align: center; font-size: 11px; color: white; padding: 6px 8px; background: linear-gradient(135deg, #25D366 0%, #128C7E 100%); border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; gap: 6px; max-width: 100%; overflow: hidden; box-sizing: border-box;">
                     <span style="font-size: 14px; flex-shrink: 0;">💬</span>
                     <span style="opacity: 0.9; white-space: nowrap;">Bakiye:</span>
-                    <span id="whatsapp-balance" style="font-weight: bold; font-size: 13px; white-space: nowrap;">∞</span>
+                    <span id="sidebar-whatsapp-balance" style="font-weight: bold; font-size: 13px; white-space: nowrap;">∞</span>
                 </div>
             </div>
             
