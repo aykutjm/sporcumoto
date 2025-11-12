@@ -8885,14 +8885,28 @@ Görev detaylarını kontrol ediniz.</textarea>
             }
 
             try {
-                // âœ… Supabase upsert ile tek seferde kaydet (onConflict: id ile gÃ¼nceller)
-                const { error: upsertError } = await supabase
-                    .from('attendanceRecords')
-                    .upsert(records, { onConflict: 'id' });
-                
-                if (upsertError) {
-                    console.error('Yoklama kaydetme hatasÄ±:', upsertError);
-                    throw upsertError;
+                // Save records one by one (update if exists, insert if new)
+                for (const record of records) {
+                    if (record.id) {
+                        // Update existing record
+                        const { error } = await supabase
+                            .from('attendanceRecords')
+                            .update(record)
+                            .eq('id', record.id);
+                        if (error) {
+                            console.error('Yoklama güncelleme hatası:', error);
+                            throw error;
+                        }
+                    } else {
+                        // Insert new record
+                        const { error } = await supabase
+                            .from('attendanceRecords')
+                            .insert(record);
+                        if (error) {
+                            console.error('Yoklama ekleme hatası:', error);
+                            throw error;
+                        }
+                    }
                 }
                 
                 // Devamsızlık mesajları gönder (sebep belirtilmemiş olanlar için)
