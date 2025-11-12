@@ -11,11 +11,35 @@ CREATE TABLE IF NOT EXISTS clubs (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Mevcut kulübü ekle (örnek - kendi club ID'nizi buraya yazın)
-INSERT INTO clubs (id, name, whatsapp_balance) VALUES
-('FmvoFvTCek44CR3pS4XC', 'Atakum Tenis Kulübü', 100)
-ON CONFLICT (id) DO UPDATE SET 
-    whatsapp_balance = EXCLUDED.whatsapp_balance;
+-- ========================================
+-- OTOMATİK KULÜP SENKRONIZASYONU
+-- ========================================
+-- Yeni kulüp eklendiğinde otomatik olarak whatsapp_balance = 100 olarak ayarlanır
+-- Mevcut kulüplerin whatsapp_balance'ı NULL ise 100 yapılır
+
+-- 1. Mevcut tüm kulüplerin whatsapp_balance'ını ayarla
+UPDATE clubs 
+SET whatsapp_balance = 100 
+WHERE whatsapp_balance IS NULL;
+
+-- 2. Yeni eklenen kulüpler için otomatik trigger
+CREATE OR REPLACE FUNCTION set_default_whatsapp_balance()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Eğer whatsapp_balance belirtilmemişse 100 yap
+    IF NEW.whatsapp_balance IS NULL THEN
+        NEW.whatsapp_balance := 100;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger oluştur
+DROP TRIGGER IF EXISTS trigger_set_whatsapp_balance ON clubs;
+CREATE TRIGGER trigger_set_whatsapp_balance
+    BEFORE INSERT ON clubs
+    FOR EACH ROW
+    EXECUTE FUNCTION set_default_whatsapp_balance();
 
 -- 2. WhatsApp mesaj paketleri tablosu
 CREATE TABLE IF NOT EXISTS whatsapp_packages (
