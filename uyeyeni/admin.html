@@ -486,7 +486,8 @@
                 
                 await Promise.all([
                     loadMessageTemplates(),
-                    loadClubInfo()
+                    loadClubInfo(),
+                    loadWhatsAppBalance() // WhatsApp bakiyesini yükle
                 ]);
                 
                 // Bildirim izni iste ve otomatik kontrolü başlat
@@ -4113,6 +4114,29 @@ Görev detaylarını kontrol ediniz.</textarea>
         
         // === WHATSAPP BALANCE PAGE ===
         
+        // Load WhatsApp balance in background and update sidebar
+        async function loadWhatsAppBalance() {
+            if (!window.supabase || !currentClubId) return;
+            
+            try {
+                const { data: clubData, error } = await window.supabase
+                    .from('clubs')
+                    .select('whatsapp_balance')
+                    .eq('id', currentClubId)
+                    .single();
+                
+                if (!error && clubData) {
+                    const balance = clubData.whatsapp_balance || 0;
+                    const sidebarBalance = document.getElementById('whatsapp-balance');
+                    if (sidebarBalance) {
+                        sidebarBalance.textContent = balance.toLocaleString('tr-TR');
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading WhatsApp balance:', error);
+            }
+        }
+
         async function renderWhatsAppBalancePage() {
             const container = document.getElementById('whatsapp-balance-content');
             if (!container) {
@@ -4327,15 +4351,53 @@ Görev detaylarını kontrol ediniz.</textarea>
                 
             } catch (error) {
                 console.error('Error loading WhatsApp balance page:', error);
-                container.innerHTML = `
-                    <div class="card">
-                        <div style="text-align: center; padding: 40px; color: #dc3545;">
-                            <h3>❌ Yüklenirken Hata Oluştu</h3>
-                            <p>${error.message}</p>
-                            <button class="btn btn-primary" onclick="renderWhatsAppBalancePage()">🔄 Tekrar Dene</button>
+                
+                // Check if tables don't exist
+                const isTableMissing = error.message.includes('relation') || 
+                                      error.message.includes('does not exist') ||
+                                      error.message.includes('whatsapp_packages') ||
+                                      error.message.includes('whatsapp_balance');
+                
+                if (isTableMissing) {
+                    container.innerHTML = `
+                        <div class="card">
+                            <div style="text-align: center; padding: 40px;">
+                                <div style="font-size: 60px; margin-bottom: 20px;">⚠️</div>
+                                <h3 style="color: #ff9800; margin-bottom: 15px;">WhatsApp Sistemi Henüz Kurulmamış</h3>
+                                <p style="color: #666; margin-bottom: 25px; line-height: 1.6;">
+                                    WhatsApp mesaj hakkı sistemini kullanabilmek için önce<br>
+                                    Supabase veritabanında gerekli tabloları oluşturmalısınız.
+                                </p>
+                                <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; text-align: left; margin-bottom: 20px;">
+                                    <h4 style="margin-bottom: 15px; color: #333;">📋 Kurulum Adımları:</h4>
+                                    <ol style="line-height: 2; color: #555;">
+                                        <li><strong>Supabase Dashboard</strong>'a gidin</li>
+                                        <li><strong>SQL Editor</strong> sekmesini açın</li>
+                                        <li><code style="background: #fff; padding: 4px 8px; border-radius: 4px;">whatsapp-credit-system.sql</code> dosyasını açın</li>
+                                        <li>Tüm SQL kodunu kopyalayın ve <strong>Run</strong> düğmesine basın</li>
+                                        <li>Bu sayfayı yenileyin</li>
+                                    </ol>
+                                </div>
+                                <button class="btn btn-primary" onclick="window.open('https://supabase.edu-ai.online/project/default/sql/new', '_blank')" style="margin-right: 10px;">
+                                    🚀 Supabase SQL Editor'ı Aç
+                                </button>
+                                <button class="btn btn-secondary" onclick="renderWhatsAppBalancePage()">
+                                    🔄 Tekrar Dene
+                                </button>
+                            </div>
                         </div>
-                    </div>
-                `;
+                    `;
+                } else {
+                    container.innerHTML = `
+                        <div class="card">
+                            <div style="text-align: center; padding: 40px; color: #dc3545;">
+                                <h3>❌ Yüklenirken Hata Oluştu</h3>
+                                <p style="margin: 15px 0;"><strong>Hata Detayı:</strong> ${error.message}</p>
+                                <button class="btn btn-primary" onclick="renderWhatsAppBalancePage()">🔄 Tekrar Dene</button>
+                            </div>
+                        </div>
+                    `;
+                }
             }
         }
         
