@@ -1296,7 +1296,7 @@
                         <div style="font-size: 36px; font-weight: 700;">${whatsappBalance.toLocaleString('tr-TR')}</div>
                         <div style="font-size: 13px; opacity: 0.8; margin-top: 5px;">mesaj</div>
                     </div>
-                    <button onclick="showAddBalanceModal('${clubId}', '${club.name}')" style="width: 100%; padding: 12px; background: #007bff; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; margin-bottom: 10px;">
+                    <button onclick="window.showAddBalanceModal('${clubId}', '${club.name.replace(/'/g, "\\'")}')" style="width: 100%; padding: 12px; background: #007bff; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; margin-bottom: 10px;">
                         ➕ Mesaj Hakkı Ekle
                     </button>
                     ${balanceLogs.length > 0 ? `

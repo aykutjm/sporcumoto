@@ -4115,8 +4115,26 @@ Görev detaylarını kontrol ediniz.</textarea>
         
         async function renderWhatsAppBalancePage() {
             const container = document.getElementById('whatsapp-balance-content');
-            if (!container) return;
+            if (!container) {
+                console.error('WhatsApp balance container not found!');
+                return;
+            }
             
+            // Check if Supabase is initialized
+            if (!window.supabase) {
+                console.error('Supabase not initialized!');
+                container.innerHTML = `<div class="card"><p style="color: red;">❌ Supabase bağlantısı kurulamadı. Sayfayı yenileyin.</p></div>`;
+                return;
+            }
+            
+            // Check if currentClubId exists
+            if (!currentClubId) {
+                console.error('currentClubId is not defined!');
+                container.innerHTML = `<div class="card"><p style="color: red;">❌ Kulüp ID bulunamadı. Lütfen tekrar giriş yapın.</p></div>`;
+                return;
+            }
+            
+            console.log('Loading WhatsApp balance for club:', currentClubId);
             container.innerHTML = '<div class="loading" style="text-align: center; padding: 40px;"><div class="spinner"></div><span>Yükleniyor...</span></div>';
             
             try {
@@ -29734,23 +29752,23 @@ Görev detaylarını kontrol ediniz.</textarea>
                         <span class="dropdown-arrow">▼</span>
                     </button>
                     <div class="dropdown-content">
-                        <button class="nav-btn sub-item" onclick="showSection('whatsapp-balance', this)">
-                            <span class="nav-text">💰 WhatsApp Bakiyem</span>
-                        </button>
                         <button class="nav-btn sub-item" onclick="showSection('whatsapp', this); switchWhatsAppTab('messages')">
-                            <span class="nav-text">💬 Mesajlaşma</span>
+                            <span class="nav-text">� Mesajlaşma</span>
                         </button>
                         <button class="nav-btn sub-item" onclick="showSection('whatsapp', this); switchWhatsAppTab('devices')">
-                            <span class="nav-text">📱 Cihazlar</span>
+                            <span class="nav-text">� Cihazlar</span>
                         </button>
                         <button class="nav-btn sub-item" onclick="showSection('whatsapp', this); switchWhatsAppTab('bulk')">
-                            <span class="nav-text">📤 Toplu Mesaj</span>
+                            <span class="nav-text">� Toplu Mesaj</span>
                         </button>
                         <button class="nav-btn sub-item" onclick="showSection('whatsapp', this); switchWhatsAppTab('queue')">
-                            <span class="nav-text">📋 Mesaj Kuyruğu</span>
+                            <span class="nav-text">� Mesaj Kuyruğu</span>
                         </button>
                         <button class="nav-btn sub-item" onclick="showSection('whatsapp', this); switchWhatsAppTab('reports')">
-                            <span class="nav-text">📊 Mesaj Raporları</span>
+                            <span class="nav-text">� Mesaj Raporları</span>
+                        </button>
+                        <button class="nav-btn sub-item" onclick="showSection('whatsapp-balance', this)">
+                            <span class="nav-text">� WhatsApp Bakiyem</span>
                         </button>
                     </div>
                 </div>
