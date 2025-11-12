@@ -2,14 +2,17 @@
 -- Kullanım: Bu SQL dosyasını Supabase SQL Editor'de çalıştırın
 -- NOT: clubs tablosu Firebase'den geliyor, bu yüzden basit bir clubs reference tablosu oluşturuyoruz
 
--- 1. clubs reference tablosu (Firebase club ID'leri için)
-CREATE TABLE IF NOT EXISTS clubs (
-    id TEXT PRIMARY KEY,  -- Firebase club ID (örn: FmvoFvTCek44CR3pS4XC)
-    name TEXT,
-    whatsapp_balance INTEGER DEFAULT 0,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
+-- 1. clubs tablosuna whatsapp_balance kolonu ekle (eğer yoksa)
+DO $$ 
+BEGIN
+    -- whatsapp_balance kolonu yoksa ekle
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'clubs' AND column_name = 'whatsapp_balance'
+    ) THEN
+        ALTER TABLE clubs ADD COLUMN whatsapp_balance INTEGER DEFAULT 100;
+    END IF;
+END $$;
 
 -- ========================================
 -- OTOMATİK KULÜP SENKRONIZASYONU
@@ -20,7 +23,7 @@ CREATE TABLE IF NOT EXISTS clubs (
 -- 1. Mevcut tüm kulüplerin whatsapp_balance'ını ayarla
 UPDATE clubs 
 SET whatsapp_balance = 100 
-WHERE whatsapp_balance IS NULL;
+WHERE whatsapp_balance IS NULL OR whatsapp_balance = 0;
 
 -- 2. Yeni eklenen kulüpler için otomatik trigger
 CREATE OR REPLACE FUNCTION set_default_whatsapp_balance()
