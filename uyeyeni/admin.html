@@ -1342,7 +1342,10 @@
                 'user-activities': renderUserActivitiesPage,
                 'inactive-members': loadInactiveMembers,
                 'campaigns': renderCampaignsPage,
-                'whatsapp-balance': renderWhatsAppBalancePage,
+                'whatsapp-balance': () => {
+                    console.log('🚀 WhatsApp Balance section triggered');
+                    window.renderWhatsAppBalancePage();
+                },
                 'members': () => {
                     renderMembersTable();
                     startMembersAutoRefresh();
@@ -4137,12 +4140,14 @@ Görev detaylarını kontrol ediniz.</textarea>
             }
         }
 
-        async function renderWhatsAppBalancePage() {
+        window.renderWhatsAppBalancePage = async function renderWhatsAppBalancePage() {
+            console.log('🎯 renderWhatsAppBalancePage called!');
             const container = document.getElementById('whatsapp-balance-content');
             if (!container) {
-                console.error('WhatsApp balance container not found!');
+                console.error('❌ WhatsApp balance container not found!');
                 return;
             }
+            console.log('✅ Container found:', container);
             
             // Check if Supabase is initialized
             if (!window.supabase) {
