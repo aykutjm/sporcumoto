@@ -4236,13 +4236,13 @@ Görev detaylarını kontrol ediniz.</textarea>
                             <div style="text-align: right;">
                                 ${currentBalance < 100 ? `
                                     <div style="background: rgba(255,255,255,0.2); padding: 15px; border-radius: 12px; backdrop-filter: blur(10px);">
-                                        <div style="font-size: 24px; margin-bottom: 5px;">⚠️</div>
+                                        <div style="font-size: 24px; margin-bottom: 5px;">&#x26A0;&#xFE0F;</div>
                                         <div style="font-size: 13px; opacity: 0.95;">Bakiyeniz düşük!</div>
                                         <div style="font-size: 13px; opacity: 0.95;">Lütfen paket satın alın</div>
                                     </div>
                                 ` : `
                                     <div style="background: rgba(255,255,255,0.2); padding: 15px; border-radius: 12px; backdrop-filter: blur(10px);">
-                                        <div style="font-size: 24px; margin-bottom: 5px;">✅</div>
+                                        <div style="font-size: 24px; margin-bottom: 5px;">&#x2705;</div>
                                         <div style="font-size: 13px; opacity: 0.95;">Bakiyeniz yeterli</div>
                                     </div>
                                 `}
@@ -4252,7 +4252,7 @@ Görev detaylarını kontrol ediniz.</textarea>
                     
                     <!-- Available Packages -->
                     <div class="card">
-                        <h3 class="card-title">📦 Mesaj Paketleri</h3>
+                        <h3 class="card-title">&#x1F4E6; Mesaj Paketleri</h3>
                         <p style="color: #666; margin-bottom: 25px;">WhatsApp mesaj hakkınızı artırmak için aşağıdaki paketlerden birini seçebilirsiniz.</p>
                         
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
@@ -4268,7 +4268,7 @@ Görev detaylarını kontrol ediniz.</textarea>
                                     <div class="card" style="position: relative; border: 2px solid ${isPopular ? '#25D366' : '#e0e0e0'}; padding: 25px; border-radius: 12px; transition: all 0.3s; cursor: pointer; background: ${isPopular ? '#f0fdf4' : 'white'};" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 8px 24px rgba(0,0,0,0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)'">
                                         ${isPopular ? `
                                             <div style="position: absolute; top: -12px; right: 20px; background: linear-gradient(135deg, #25D366 0%, #128C7E 100%); color: white; padding: 5px 15px; border-radius: 20px; font-size: 12px; font-weight: 600; box-shadow: 0 2px 8px rgba(37, 211, 102, 0.4);">
-                                                ⭐ Popüler
+                                                &#x2B50; Popüler
                                             </div>
                                         ` : ''}
                                         
@@ -4293,7 +4293,7 @@ Görev detaylarını kontrol ediniz.</textarea>
                                             ` : ''}
                                             
                                             <button onclick="purchasePackage('${pkg.id}', '${pkg.name}', ${pkg.message_count}, ${pkg.price})" class="btn btn-primary" style="width: 100%; margin-top: 10px; background: ${isPopular ? 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'}; border: none; padding: 12px; font-weight: 600;">
-                                                💳 Satın Al
+                                                &#x1F4B3; Satın Al
                                             </button>
                                         </div>
                                     </div>
@@ -4302,14 +4302,14 @@ Görev detaylarını kontrol ediniz.</textarea>
                         </div>
                         
                         <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin-top: 25px; border-left: 4px solid #ffc107;">
-                            <strong>ℹ️ Not:</strong> Paket satın alma işlemleri için lütfen iletişime geçiniz: 
-                            <a href="tel:03623630063" style="color: #007bff; text-decoration: none; font-weight: 600;">📞 0362 363 00 63</a>
+                            <strong>&#x2139;&#xFE0F; Not:</strong> Paket satın alma işlemleri için lütfen iletişime geçiniz: 
+                            <a href="tel:03623630063" style="color: #007bff; text-decoration: none; font-weight: 600;">&#x1F4DE; 0362 363 00 63</a>
                         </div>
                     </div>
                     
                     <!-- Transaction History -->
                     <div class="card">
-                        <h3 class="card-title">📊 İşlem Geçmişi</h3>
+                        <h3 class="card-title">&#x1F4CA; İşlem Geçmişi</h3>
                         
                         ${logs && logs.length > 0 ? `
                             <div style="overflow-x: auto;">
@@ -4327,11 +4327,11 @@ Görev detaylarını kontrol ediniz.</textarea>
                                     <tbody>
                                         ${logs.map(log => {
                                             const actionTypes = {
-                                                'manual_add': '👨‍💼 Manuel Ekleme',
-                                                'purchase': '💳 Paket Satın Alma',
-                                                'send': '📤 Mesaj Gönderimi',
-                                                'add': '➕ Ekleme',
-                                                'refund': '↩️ İade'
+                                                'manual_add': '&#x1F468;&#x200D;&#x1F4BC; Manuel Ekleme',
+                                                'purchase': '&#x1F4B3; Paket Satın Alma',
+                                                'send': '&#x1F4E4; Mesaj Gönderimi',
+                                                'add': '&#x2795; Ekleme',
+                                                'refund': '&#x21A9;&#xFE0F; İade'
                                             };
                                             
                                             return `
@@ -29789,7 +29789,7 @@ Görev detaylarını kontrol ediniz.</textarea>
                     <div style="width: 34px;"></div> <!-- Boşluk için -->
                 </div>
                 <div id="whatsapp-balance-container" style="text-align: center; font-size: 11px; color: white; padding: 6px 8px; background: linear-gradient(135deg, #25D366 0%, #128C7E 100%); border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; gap: 6px; max-width: 100%; overflow: hidden; box-sizing: border-box;">
-                    <span style="font-size: 14px; flex-shrink: 0;">💬</span>
+                    <span style="font-size: 14px; flex-shrink: 0;">&#x1F4AC;</span>
                     <span style="opacity: 0.9; white-space: nowrap;">Bakiye:</span>
                     <span id="sidebar-whatsapp-balance" style="font-weight: bold; font-size: 13px; white-space: nowrap;">∞</span>
                 </div>
@@ -29998,7 +29998,7 @@ Görev detaylarını kontrol ediniz.</textarea>
 
             <!-- WhatsApp Balance Section -->
             <div id="whatsapp-balance" class="section">
-                <h2 class="card-title">💰 WhatsApp Bakiyem</h2>
+                <h2 class="card-title">&#x1F4B0; WhatsApp Bakiyem</h2>
                 
                 <div id="whatsapp-balance-content" style="display: flex; flex-direction: column; gap: 25px;">
                     <div class="loading" style="text-align: center; padding: 40px;">
