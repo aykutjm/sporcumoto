@@ -8849,14 +8849,22 @@ Görev detaylarını kontrol ediniz.</textarea>
 
             const groupMembers = members.filter(m => Array.isArray(group.members) && group.members.includes(m.id) && m.status === 'active');
             
-            // Array to store all attendance operations
-            const attendancePromises = [];
-
+            // Array to store all attendance records
+            const records = [];
 
             for (const member of groupMembers) {
                 const isPresent = presentMemberIds.includes(member.id);
                 const status = isPresent ? 'present' : 'absent';
                 const reason = formData.get(`reason_${member.id}`) || '';
+
+                // Check for existing record
+                const { data: existingRecords } = await supabase
+                    .from('attendanceRecords')
+                    .select('id')
+                    .eq('memberId', member.id)
+                    .eq('groupId', groupId)
+                    .eq('date', attendanceDate)
+                    .eq('clubId', currentClubId);
 
                 const record = {
                     memberId: member.id,
@@ -8865,38 +8873,15 @@ Görev detaylarını kontrol ediniz.</textarea>
                     status: status,
                     reason: reason,
                     recordedBy: currentUser.fullName || currentUser.username,
-                    clubId: currentClubId // ✅ Kulüp ID'si eklendi
+                    clubId: currentClubId
                 };
 
-                // âœ… Supabase ile mevcut kaydÄ± kontrol et
-                const { data: existingRecords, error: queryError } = await supabase
-                    .from('attendanceRecords')
-                    .select('id')
-                    .eq('memberId', member.id)
-                    .eq('groupId', groupId)
-                    .eq('date', attendanceDate)
-                    .eq('clubId', currentClubId);
-                
-                if (queryError) {
-                    console.error('Yoklama sorgu hatasÄ±:', queryError);
-                    throw queryError;
-                }
-                
-                // Mevcut kayÄ±t varsa gÃ¼ncelle, yoksa yeni ekle
+                // If existing record found, add its ID for upsert
                 if (existingRecords && existingRecords.length > 0) {
-                    attendancePromises.push(
-                        supabase
-                            .from('attendanceRecords')
-                            .update(record)
-                            .eq('id', existingRecords[0].id)
-                    );
-                } else {
-                    attendancePromises.push(
-                        supabase
-                            .from('attendanceRecords')
-                            .insert(record)
-                    );
+                    record.id = existingRecords[0].id;
                 }
+
+                records.push(record);
             }
 
             try {
