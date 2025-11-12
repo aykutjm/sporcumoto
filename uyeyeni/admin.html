@@ -4380,7 +4380,22 @@ Görev detaylarını kontrol ediniz.</textarea>
                 const section = document.getElementById('whatsapp-balance');
                 if (section) {
                     section.style.display = 'block';
-                    console.log('✅ Section visibility forced to block');
+                    section.style.visibility = 'visible';
+                    section.style.opacity = '1';
+                    section.classList.add('active');
+                    console.log('✅ Section visibility forced - styles:', {
+                        display: section.style.display,
+                        visibility: section.style.visibility,
+                        opacity: section.style.opacity,
+                        classList: Array.from(section.classList)
+                    });
+                    
+                    // Log container state
+                    console.log('📦 Container state:', {
+                        innerHTML: container.innerHTML.substring(0, 100) + '...',
+                        display: container.style.display,
+                        childElementCount: container.childElementCount
+                    });
                 } else {
                     console.error('❌ Section #whatsapp-balance not found!');
                 }
