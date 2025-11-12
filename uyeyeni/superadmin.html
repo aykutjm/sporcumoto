@@ -1234,17 +1234,46 @@
             const club = clubs.find(c => c.id === clubId);
             if (!club) return;
             
+            // Load WhatsApp balance from Supabase
+            let whatsappBalance = 0;
+            let balanceLogs = [];
+            try {
+                const { data: clubData, error: clubError } = await window.supabase
+                    .from('clubs')
+                    .select('whatsapp_balance')
+                    .eq('id', clubId)
+                    .single();
+                
+                if (clubError) throw clubError;
+                whatsappBalance = clubData?.whatsapp_balance || 0;
+                
+                // Load balance logs
+                const { data: logs, error: logsError } = await window.supabase
+                    .from('whatsapp_balance_logs')
+                    .select('*')
+                    .eq('club_id', clubId)
+                    .order('created_at', { ascending: false })
+                    .limit(10);
+                
+                if (!logsError && logs) {
+                    balanceLogs = logs;
+                }
+            } catch (error) {
+                console.error('Error loading WhatsApp balance:', error);
+            }
+            
             // Find admin user
             let adminInfo = null;
             try {
-                const { collection, query, where, getDocs } = window.firebaseModules;
-                const adminQuery = query(
-                    collection(window.db, 'users'),
-                    where('clubId', '==', clubId)
-                );
-                const adminSnapshot = await getDocs(adminQuery);
-                if (!adminSnapshot.empty) {
-                    adminInfo = adminSnapshot.docs[0].data();
+                const { data: users, error } = await window.supabase
+                    .from('users')
+                    .select('*')
+                    .eq('club_id', clubId)
+                    .eq('role', 'admin')
+                    .limit(1);
+                
+                if (!error && users && users.length > 0) {
+                    adminInfo = users[0];
                 }
             } catch (error) {
                 console.error('Error loading admin info:', error);
@@ -1260,11 +1289,48 @@
                     <div class="detail-row"><strong>✅ Durum:</strong> <span class="status-badge ${club.status === 'active' ? 'active' : 'inactive'}">${club.status === 'active' ? 'Aktif' : 'Pasif'}</span></div>
                     <div class="detail-row"><strong>📅 Kayıt Tarihi:</strong> ${club.createdAt ? new Date(club.createdAt).toLocaleDateString('tr-TR', {year: 'numeric', month: 'long', day: 'numeric'}) : '-'}</div>
                     
+                    <hr style="margin: 20px 0; border: none; border-top: 1px solid #e0e0e0;">
+                    <h4 style="margin-bottom: 15px; color: #667eea;">📱 WhatsApp Mesaj Hakkı</h4>
+                    <div style="background: linear-gradient(135deg, #25D366 0%, #128C7E 100%); padding: 20px; border-radius: 12px; color: white; margin-bottom: 15px;">
+                        <div style="font-size: 14px; opacity: 0.9; margin-bottom: 8px;">Kalan Mesaj Hakkı</div>
+                        <div style="font-size: 36px; font-weight: 700;">${whatsappBalance.toLocaleString('tr-TR')}</div>
+                        <div style="font-size: 13px; opacity: 0.8; margin-top: 5px;">mesaj</div>
+                    </div>
+                    <button onclick="showAddBalanceModal('${clubId}', '${club.name}')" style="width: 100%; padding: 12px; background: #007bff; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; margin-bottom: 10px;">
+                        ➕ Mesaj Hakkı Ekle
+                    </button>
+                    ${balanceLogs.length > 0 ? `
+                        <div style="margin-top: 15px;">
+                            <h5 style="margin-bottom: 10px; color: #666; font-size: 14px;">📊 Son İşlemler</h5>
+                            <div style="max-height: 200px; overflow-y: auto; background: #f8f9fa; border-radius: 8px; padding: 10px;">
+                                ${balanceLogs.map(log => `
+                                    <div style="padding: 8px; border-bottom: 1px solid #dee2e6; font-size: 13px;">
+                                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                                            <span style="font-weight: 600; color: ${log.amount > 0 ? '#28a745' : '#dc3545'};">
+                                                ${log.amount > 0 ? '+' : ''}${log.amount.toLocaleString('tr-TR')} mesaj
+                                            </span>
+                                            <span style="color: #6c757d; font-size: 12px;">
+                                                ${new Date(log.created_at).toLocaleDateString('tr-TR', {day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'})}
+                                            </span>
+                                        </div>
+                                        <div style="color: #6c757d; font-size: 12px; margin-top: 3px;">
+                                            ${log.action_type === 'manual_add' ? '👨‍💼 Manuel Ekleme' : 
+                                              log.action_type === 'purchase' ? '💳 Paket Satın Alma' : 
+                                              log.action_type === 'send' ? '📤 Mesaj Gönderimi' : 
+                                              log.action_type === 'add' ? '➕ Ekleme' : log.action_type}
+                                            ${log.note ? ' - ' + log.note : ''}
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                    
                     ${adminInfo ? `
                         <hr style="margin: 20px 0; border: none; border-top: 1px solid #e0e0e0;">
                         <h4 style="margin-bottom: 15px; color: #667eea;">🔐 Admin Giriş Bilgileri</h4>
                         <div style="background: #fff3cd; padding: 15px; border-radius: 8px; border: 2px solid #ffc107;">
-                            <div class="detail-row"><strong>👤 Ad Soyad:</strong> ${adminInfo.fullName || club.adminName || '-'}</div>
+                            <div class="detail-row"><strong>👤 Ad Soyad:</strong> ${adminInfo.full_name || adminInfo.fullName || club.adminName || '-'}</div>
                             <div class="detail-row"><strong>📧 Email:</strong> ${adminInfo.email || club.adminEmail || '-'}</div>
                             <div class="detail-row"><strong>📱 Telefon:</strong> ${adminInfo.phone || club.adminPhone || '-'}</div>
                             <div class="detail-row"><strong>🔑 Şifre:</strong> <code style="background: #fff; padding: 4px 8px; border-radius: 4px; font-size: 14px;">${adminInfo.password || 'Kulup123!'}</code></div>
@@ -1286,6 +1352,103 @@
                 <button onclick="closeModal()" class="btn btn-primary" style="width: 100%; margin-top: 10px;">Kapat</button>
             `);
         };
+        
+        window.showAddBalanceModal = function(clubId, clubName) {
+            closeModal();
+            
+            setTimeout(() => {
+                const modal = document.getElementById('modal');
+                const modalContent = document.getElementById('modal-content');
+                
+                modalContent.innerHTML = `
+                    <div style="max-width: 500px; margin: 0 auto;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                            <h3 style="margin: 0;">➕ Mesaj Hakkı Ekle</h3>
+                            <button onclick="closeModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #6c757d;">×</button>
+                        </div>
+                        
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                            <strong>Kulüp:</strong> ${clubName}
+                        </div>
+                        
+                        <form id="add-balance-form" style="display: flex; flex-direction: column; gap: 20px;">
+                            <div>
+                                <label style="display: block; margin-bottom: 8px; font-weight: 600;">Eklenecek Mesaj Sayısı</label>
+                                <input 
+                                    type="number" 
+                                    id="balance-amount" 
+                                    placeholder="Örn: 500"
+                                    min="1"
+                                    style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px;"
+                                    required
+                                >
+                            </div>
+                            
+                            <div>
+                                <label style="display: block; margin-bottom: 8px; font-weight: 600;">Not (Opsiyonel)</label>
+                                <textarea 
+                                    id="balance-note" 
+                                    placeholder="Örn: Ücretsiz deneme paketi"
+                                    rows="3"
+                                    style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; resize: vertical;"
+                                ></textarea>
+                            </div>
+                            
+                            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 10px;">
+                                <button type="button" onclick="closeModal()" style="padding: 12px 24px; background: #6c757d; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                                    İptal
+                                </button>
+                                <button type="submit" style="padding: 12px 24px; background: linear-gradient(135deg, #25D366 0%, #128C7E 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                                    ✅ Mesaj Hakkı Ekle
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                `;
+                
+                modal.style.display = 'flex';
+                
+                document.getElementById('add-balance-form').addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    await handleAddBalance(clubId);
+                });
+            }, 100);
+        };
+        
+        async function handleAddBalance(clubId) {
+            const amount = parseInt(document.getElementById('balance-amount').value);
+            const note = document.getElementById('balance-note').value.trim();
+            
+            if (!amount || amount < 1) {
+                showAlert('❌ Lütfen geçerli bir miktar girin!', 'error');
+                return;
+            }
+            
+            try {
+                // Supabase fonksiyonunu çağır
+                const { data, error } = await window.supabase.rpc('update_whatsapp_balance', {
+                    p_club_id: clubId,
+                    p_amount: amount,
+                    p_action_type: 'manual_add',
+                    p_note: note || null,
+                    p_created_by: 'superadmin'
+                });
+                
+                if (error) throw error;
+                
+                showAlert(`✅ ${amount} mesaj hakkı başarıyla eklendi!`, 'success');
+                closeModal();
+                
+                // Kulüp detaylarını yeniden göster
+                setTimeout(() => {
+                    window.viewClubDetails(clubId);
+                }, 500);
+                
+            } catch (error) {
+                console.error('Error adding balance:', error);
+                showAlert('❌ Mesaj hakkı eklenirken hata oluştu: ' + error.message, 'error');
+            }
+        }
 
         window.showSection = function(section) {
             document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
@@ -1296,6 +1459,8 @@
                 renderDashboard();
             } else if (section === 'clubs') {
                 renderClubsList();
+            } else if (section === 'whatsapp-packages') {
+                renderWhatsAppPackages();
             } else if (section === 'settings') {
                 renderSettings();
             }
@@ -1460,6 +1625,393 @@
         }
 
         window.closeModal = closeModal;
+
+        // ==================== WHATSAPP PACKAGES MANAGEMENT ====================
+        
+        async function renderWhatsAppPackages() {
+            const container = document.getElementById('content-area');
+            container.innerHTML = '<div style="text-align: center; padding: 40px;"><div class="spinner"></div><p>Yükleniyor...</p></div>';
+            
+            try {
+                const { data: packages, error } = await window.supabase
+                    .from('whatsapp_packages')
+                    .select('*')
+                    .order('message_count', { ascending: true });
+                
+                if (error) throw error;
+                
+                container.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+                        <h2 style="margin: 0;">📱 WhatsApp Mesaj Paketleri</h2>
+                        <button onclick="showAddPackageModal()" class="btn-primary" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                            ➕ Yeni Paket Ekle
+                        </button>
+                    </div>
+                    
+                    <div style="background: white; border-radius: 12px; padding: 25px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <div style="overflow-x: auto;">
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+                                        <th style="padding: 15px; text-align: left;">Paket Adı</th>
+                                        <th style="padding: 15px; text-align: center;">Mesaj Sayısı</th>
+                                        <th style="padding: 15px; text-align: center;">Fiyat</th>
+                                        <th style="padding: 15px; text-align: center;">Açıklama</th>
+                                        <th style="padding: 15px; text-align: center;">Durum</th>
+                                        <th style="padding: 15px; text-align: center;">İşlemler</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${packages.length === 0 ? `
+                                        <tr>
+                                            <td colspan="6" style="padding: 40px; text-align: center; color: #6c757d;">
+                                                Henüz paket eklenmemiş
+                                            </td>
+                                        </tr>
+                                    ` : packages.map(pkg => `
+                                        <tr style="border-bottom: 1px solid #dee2e6;">
+                                            <td style="padding: 15px; font-weight: 600;">${pkg.name}</td>
+                                            <td style="padding: 15px; text-align: center;">${pkg.message_count.toLocaleString('tr-TR')} mesaj</td>
+                                            <td style="padding: 15px; text-align: center; font-weight: 600; color: #28a745;">₺${parseFloat(pkg.price).toLocaleString('tr-TR', {minimumFractionDigits: 2})}</td>
+                                            <td style="padding: 15px; text-align: center; color: #6c757d; font-size: 13px; max-width: 200px;">${pkg.description || '-'}</td>
+                                            <td style="padding: 15px; text-align: center;">
+                                                <span style="padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; ${pkg.is_active ? 'background: #d4edda; color: #155724;' : 'background: #f8d7da; color: #721c24;'}">
+                                                    ${pkg.is_active ? '✓ Aktif' : '✗ Pasif'}
+                                                </span>
+                                            </td>
+                                            <td style="padding: 15px; text-align: center;">
+                                                <button onclick="togglePackageStatus('${pkg.id}', ${!pkg.is_active})" class="btn-sm" style="margin-right: 8px; padding: 6px 12px; background: ${pkg.is_active ? '#ffc107' : '#28a745'}; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                                                    ${pkg.is_active ? '⏸ Pasifleştir' : '▶ Aktifleştir'}
+                                                </button>
+                                                <button onclick="editPackage('${pkg.id}')" class="btn-sm" style="margin-right: 8px; padding: 6px 12px; background: #007bff; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                                                    ✏️ Düzenle
+                                                </button>
+                                                <button onclick="deletePackage('${pkg.id}')" class="btn-sm" style="padding: 6px 12px; background: #dc3545; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                                                    🗑️ Sil
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+                
+            } catch (error) {
+                console.error('Error loading packages:', error);
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #dc3545;">
+                        <h3>❌ Paketler yüklenirken hata oluştu</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        window.showAddPackageModal = function() {
+            const modal = document.getElementById('modal');
+            const modalContent = document.getElementById('modal-content');
+            
+            modalContent.innerHTML = `
+                <div style="max-width: 600px; margin: 0 auto;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                        <h3 style="margin: 0;">➕ Yeni WhatsApp Paketi Ekle</h3>
+                        <button onclick="closeModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #6c757d;">×</button>
+                    </div>
+                    
+                    <form id="add-package-form" style="display: flex; flex-direction: column; gap: 20px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 8px; font-weight: 600;">Paket Adı</label>
+                            <input 
+                                type="text" 
+                                id="package-name" 
+                                placeholder="Örn: Başlangıç Paketi"
+                                style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px;"
+                                required
+                            >
+                        </div>
+                        
+                        <div>
+                            <label style="display: block; margin-bottom: 8px; font-weight: 600;">Mesaj Sayısı</label>
+                            <input 
+                                type="number" 
+                                id="package-count" 
+                                placeholder="Örn: 1000"
+                                min="1"
+                                style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px;"
+                                required
+                            >
+                        </div>
+                        
+                        <div>
+                            <label style="display: block; margin-bottom: 8px; font-weight: 600;">Fiyat (₺)</label>
+                            <input 
+                                type="number" 
+                                id="package-price" 
+                                placeholder="Örn: 99.00"
+                                min="0"
+                                step="0.01"
+                                style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px;"
+                                required
+                            >
+                        </div>
+                        
+                        <div>
+                            <label style="display: block; margin-bottom: 8px; font-weight: 600;">Açıklama (Opsiyonel)</label>
+                            <textarea 
+                                id="package-description" 
+                                placeholder="Paket hakkında kısa açıklama"
+                                rows="3"
+                                style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; resize: vertical;"
+                            ></textarea>
+                        </div>
+                        
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <input 
+                                type="checkbox" 
+                                id="package-active" 
+                                checked
+                                style="width: 20px; height: 20px; cursor: pointer;"
+                            >
+                            <label for="package-active" style="cursor: pointer; font-weight: 600;">Paketi Aktif Olarak Ekle</label>
+                        </div>
+                        
+                        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 10px;">
+                            <button type="button" onclick="closeModal()" style="padding: 12px 24px; background: #6c757d; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                                İptal
+                            </button>
+                            <button type="submit" style="padding: 12px 24px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                                💾 Paketi Kaydet
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            `;
+            
+            modal.style.display = 'flex';
+            
+            document.getElementById('add-package-form').addEventListener('submit', handleAddPackage);
+        };
+        
+        async function handleAddPackage(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('package-name').value.trim();
+            const messageCount = parseInt(document.getElementById('package-count').value);
+            const price = parseFloat(document.getElementById('package-price').value);
+            const description = document.getElementById('package-description').value.trim();
+            const isActive = document.getElementById('package-active').checked;
+            
+            if (!name || messageCount < 1 || price < 0) {
+                showAlert('❌ Lütfen tüm gerekli alanları doğru doldurun!', 'error');
+                return;
+            }
+            
+            try {
+                const { data, error } = await window.supabase
+                    .from('whatsapp_packages')
+                    .insert([{
+                        name: name,
+                        message_count: messageCount,
+                        price: price,
+                        description: description || null,
+                        is_active: isActive
+                    }])
+                    .select();
+                
+                if (error) throw error;
+                
+                showAlert('✅ Paket başarıyla eklendi!', 'success');
+                closeModal();
+                renderWhatsAppPackages();
+                
+            } catch (error) {
+                console.error('Error adding package:', error);
+                showAlert('❌ Paket eklenirken hata oluştu: ' + error.message, 'error');
+            }
+        }
+        
+        window.editPackage = async function(packageId) {
+            try {
+                const { data: pkg, error } = await window.supabase
+                    .from('whatsapp_packages')
+                    .select('*')
+                    .eq('id', packageId)
+                    .single();
+                
+                if (error) throw error;
+                
+                const modal = document.getElementById('modal');
+                const modalContent = document.getElementById('modal-content');
+                
+                modalContent.innerHTML = `
+                    <div style="max-width: 600px; margin: 0 auto;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                            <h3 style="margin: 0;">✏️ Paketi Düzenle</h3>
+                            <button onclick="closeModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #6c757d;">×</button>
+                        </div>
+                        
+                        <form id="edit-package-form" style="display: flex; flex-direction: column; gap: 20px;">
+                            <div>
+                                <label style="display: block; margin-bottom: 8px; font-weight: 600;">Paket Adı</label>
+                                <input 
+                                    type="text" 
+                                    id="edit-package-name" 
+                                    value="${pkg.name}"
+                                    style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px;"
+                                    required
+                                >
+                            </div>
+                            
+                            <div>
+                                <label style="display: block; margin-bottom: 8px; font-weight: 600;">Mesaj Sayısı</label>
+                                <input 
+                                    type="number" 
+                                    id="edit-package-count" 
+                                    value="${pkg.message_count}"
+                                    min="1"
+                                    style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px;"
+                                    required
+                                >
+                            </div>
+                            
+                            <div>
+                                <label style="display: block; margin-bottom: 8px; font-weight: 600;">Fiyat (₺)</label>
+                                <input 
+                                    type="number" 
+                                    id="edit-package-price" 
+                                    value="${pkg.price}"
+                                    min="0"
+                                    step="0.01"
+                                    style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px;"
+                                    required
+                                >
+                            </div>
+                            
+                            <div>
+                                <label style="display: block; margin-bottom: 8px; font-weight: 600;">Açıklama</label>
+                                <textarea 
+                                    id="edit-package-description" 
+                                    rows="3"
+                                    style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; resize: vertical;"
+                                >${pkg.description || ''}</textarea>
+                            </div>
+                            
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <input 
+                                    type="checkbox" 
+                                    id="edit-package-active" 
+                                    ${pkg.is_active ? 'checked' : ''}
+                                    style="width: 20px; height: 20px; cursor: pointer;"
+                                >
+                                <label for="edit-package-active" style="cursor: pointer; font-weight: 600;">Paket Aktif</label>
+                            </div>
+                            
+                            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 10px;">
+                                <button type="button" onclick="closeModal()" style="padding: 12px 24px; background: #6c757d; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                                    İptal
+                                </button>
+                                <button type="submit" style="padding: 12px 24px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                                    💾 Değişiklikleri Kaydet
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                `;
+                
+                modal.style.display = 'flex';
+                
+                document.getElementById('edit-package-form').addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    await handleEditPackage(packageId);
+                });
+                
+            } catch (error) {
+                console.error('Error loading package:', error);
+                showAlert('❌ Paket bilgileri yüklenirken hata oluştu: ' + error.message, 'error');
+            }
+        };
+        
+        async function handleEditPackage(packageId) {
+            const name = document.getElementById('edit-package-name').value.trim();
+            const messageCount = parseInt(document.getElementById('edit-package-count').value);
+            const price = parseFloat(document.getElementById('edit-package-price').value);
+            const description = document.getElementById('edit-package-description').value.trim();
+            const isActive = document.getElementById('edit-package-active').checked;
+            
+            if (!name || messageCount < 1 || price < 0) {
+                showAlert('❌ Lütfen tüm gerekli alanları doğru doldurun!', 'error');
+                return;
+            }
+            
+            try {
+                const { data, error } = await window.supabase
+                    .from('whatsapp_packages')
+                    .update({
+                        name: name,
+                        message_count: messageCount,
+                        price: price,
+                        description: description || null,
+                        is_active: isActive
+                    })
+                    .eq('id', packageId)
+                    .select();
+                
+                if (error) throw error;
+                
+                showAlert('✅ Paket başarıyla güncellendi!', 'success');
+                closeModal();
+                renderWhatsAppPackages();
+                
+            } catch (error) {
+                console.error('Error updating package:', error);
+                showAlert('❌ Paket güncellenirken hata oluştu: ' + error.message, 'error');
+            }
+        }
+        
+        window.togglePackageStatus = async function(packageId, newStatus) {
+            try {
+                const { data, error } = await window.supabase
+                    .from('whatsapp_packages')
+                    .update({ is_active: newStatus })
+                    .eq('id', packageId)
+                    .select();
+                
+                if (error) throw error;
+                
+                showAlert(`✅ Paket ${newStatus ? 'aktifleştirildi' : 'pasifleştirildi'}!`, 'success');
+                renderWhatsAppPackages();
+                
+            } catch (error) {
+                console.error('Error toggling package status:', error);
+                showAlert('❌ Paket durumu değiştirilemedi: ' + error.message, 'error');
+            }
+        };
+        
+        window.deletePackage = async function(packageId) {
+            if (!confirm('Bu paketi silmek istediğinizden emin misiniz? Bu işlem geri alınamaz!')) {
+                return;
+            }
+            
+            try {
+                const { data, error } = await window.supabase
+                    .from('whatsapp_packages')
+                    .delete()
+                    .eq('id', packageId);
+                
+                if (error) throw error;
+                
+                showAlert('✅ Paket başarıyla silindi!', 'success');
+                renderWhatsAppPackages();
+                
+            } catch (error) {
+                console.error('Error deleting package:', error);
+                showAlert('❌ Paket silinirken hata oluştu: ' + error.message, 'error');
+            }
+        };
+
+        // ==================== END WHATSAPP PACKAGES MANAGEMENT ====================
 
         async function testFirebaseConnection() {
             console.log('🔍 Testing Firebase connection...');
@@ -1965,6 +2517,7 @@
         <div class="nav">
             <button class="nav-btn active" onclick="showSection('dashboard')">📊 Dashboard</button>
             <button class="nav-btn" onclick="showSection('clubs')">🏢 Kulüpler</button>
+            <button class="nav-btn" onclick="showSection('whatsapp-packages')">📱 WhatsApp Paketleri</button>
             <button class="nav-btn" onclick="showSection('settings')">⚙️ Ayarlar</button>
         </div>
 

@@ -1341,6 +1341,7 @@
                 'user-activities': renderUserActivitiesPage,
                 'inactive-members': loadInactiveMembers,
                 'campaigns': renderCampaignsPage,
+                'whatsapp-balance': renderWhatsAppBalancePage,
                 'members': () => {
                     renderMembersTable();
                     startMembersAutoRefresh();
@@ -4109,6 +4110,236 @@ Görev detaylarını kontrol ediniz.</textarea>
         }
         
         window.switchWhatsAppTab = switchWhatsAppTab;
+        
+        // === WHATSAPP BALANCE PAGE ===
+        
+        async function renderWhatsAppBalancePage() {
+            const container = document.getElementById('whatsapp-balance-content');
+            if (!container) return;
+            
+            container.innerHTML = '<div class="loading" style="text-align: center; padding: 40px;"><div class="spinner"></div><span>Yükleniyor...</span></div>';
+            
+            try {
+                // Load current balance
+                const { data: clubData, error: clubError } = await window.supabase
+                    .from('clubs')
+                    .select('whatsapp_balance')
+                    .eq('id', currentClubId)
+                    .single();
+                
+                if (clubError) throw clubError;
+                
+                const currentBalance = clubData?.whatsapp_balance || 0;
+                
+                // Load available packages
+                const { data: packages, error: packagesError } = await window.supabase
+                    .from('whatsapp_packages')
+                    .select('*')
+                    .eq('is_active', true)
+                    .order('message_count', { ascending: true });
+                
+                if (packagesError) throw packagesError;
+                
+                // Load recent transactions
+                const { data: logs, error: logsError } = await window.supabase
+                    .from('whatsapp_balance_logs')
+                    .select('*')
+                    .eq('club_id', currentClubId)
+                    .order('created_at', { ascending: false })
+                    .limit(20);
+                
+                if (logsError) throw logsError;
+                
+                // Update sidebar balance display
+                const sidebarBalance = document.getElementById('whatsapp-balance');
+                if (sidebarBalance) {
+                    sidebarBalance.textContent = currentBalance.toLocaleString('tr-TR');
+                }
+                
+                // Render page
+                container.innerHTML = `
+                    <!-- Current Balance Card -->
+                    <div class="card" style="background: linear-gradient(135deg, #25D366 0%, #128C7E 100%); color: white; padding: 30px; border-radius: 16px; box-shadow: 0 4px 20px rgba(37, 211, 102, 0.3);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
+                            <div>
+                                <div style="font-size: 16px; opacity: 0.9; margin-bottom: 10px;">Mevcut Mesaj Bakiyeniz</div>
+                                <div style="font-size: 48px; font-weight: 700; margin-bottom: 5px;">${currentBalance.toLocaleString('tr-TR')}</div>
+                                <div style="font-size: 14px; opacity: 0.8;">WhatsApp mesajı</div>
+                            </div>
+                            <div style="text-align: right;">
+                                ${currentBalance < 100 ? `
+                                    <div style="background: rgba(255,255,255,0.2); padding: 15px; border-radius: 12px; backdrop-filter: blur(10px);">
+                                        <div style="font-size: 24px; margin-bottom: 5px;">⚠️</div>
+                                        <div style="font-size: 13px; opacity: 0.95;">Bakiyeniz düşük!</div>
+                                        <div style="font-size: 13px; opacity: 0.95;">Lütfen paket satın alın</div>
+                                    </div>
+                                ` : `
+                                    <div style="background: rgba(255,255,255,0.2); padding: 15px; border-radius: 12px; backdrop-filter: blur(10px);">
+                                        <div style="font-size: 24px; margin-bottom: 5px;">✅</div>
+                                        <div style="font-size: 13px; opacity: 0.95;">Bakiyeniz yeterli</div>
+                                    </div>
+                                `}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Available Packages -->
+                    <div class="card">
+                        <h3 class="card-title">📦 Mesaj Paketleri</h3>
+                        <p style="color: #666; margin-bottom: 25px;">WhatsApp mesaj hakkınızı artırmak için aşağıdaki paketlerden birini seçebilirsiniz.</p>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                            ${packages.length === 0 ? `
+                                <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: #999;">
+                                    Şu anda aktif paket bulunmuyor
+                                </div>
+                            ` : packages.map(pkg => {
+                                const pricePerMessage = (parseFloat(pkg.price) / pkg.message_count).toFixed(4);
+                                const isPopular = pkg.message_count >= 2500 && pkg.message_count <= 5000;
+                                
+                                return `
+                                    <div class="card" style="position: relative; border: 2px solid ${isPopular ? '#25D366' : '#e0e0e0'}; padding: 25px; border-radius: 12px; transition: all 0.3s; cursor: pointer; background: ${isPopular ? '#f0fdf4' : 'white'};" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 8px 24px rgba(0,0,0,0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)'">
+                                        ${isPopular ? `
+                                            <div style="position: absolute; top: -12px; right: 20px; background: linear-gradient(135deg, #25D366 0%, #128C7E 100%); color: white; padding: 5px 15px; border-radius: 20px; font-size: 12px; font-weight: 600; box-shadow: 0 2px 8px rgba(37, 211, 102, 0.4);">
+                                                ⭐ Popüler
+                                            </div>
+                                        ` : ''}
+                                        
+                                        <div style="text-align: center;">
+                                            <h4 style="margin: 0 0 10px 0; font-size: 20px; color: #333;">${pkg.name}</h4>
+                                            <div style="font-size: 36px; font-weight: 700; color: ${isPopular ? '#25D366' : '#667eea'}; margin: 15px 0;">
+                                                ${pkg.message_count.toLocaleString('tr-TR')}
+                                            </div>
+                                            <div style="font-size: 14px; color: #666; margin-bottom: 15px;">mesaj</div>
+                                            
+                                            <div style="background: #f8f9fa; padding: 10px; border-radius: 8px; margin: 15px 0;">
+                                                <div style="font-size: 28px; font-weight: 700; color: #28a745;">
+                                                    ₺${parseFloat(pkg.price).toLocaleString('tr-TR', {minimumFractionDigits: 2})}
+                                                </div>
+                                                <div style="font-size: 12px; color: #666; margin-top: 5px;">
+                                                    (Mesaj başına ₺${pricePerMessage})
+                                                </div>
+                                            </div>
+                                            
+                                            ${pkg.description ? `
+                                                <p style="font-size: 13px; color: #666; margin: 15px 0; min-height: 40px;">${pkg.description}</p>
+                                            ` : ''}
+                                            
+                                            <button onclick="purchasePackage('${pkg.id}', '${pkg.name}', ${pkg.message_count}, ${pkg.price})" class="btn btn-primary" style="width: 100%; margin-top: 10px; background: ${isPopular ? 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'}; border: none; padding: 12px; font-weight: 600;">
+                                                💳 Satın Al
+                                            </button>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                        
+                        <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin-top: 25px; border-left: 4px solid #ffc107;">
+                            <strong>ℹ️ Not:</strong> Paket satın alma işlemleri için lütfen iletişime geçiniz: 
+                            <a href="tel:03623630063" style="color: #007bff; text-decoration: none; font-weight: 600;">📞 0362 363 00 63</a>
+                        </div>
+                    </div>
+                    
+                    <!-- Transaction History -->
+                    <div class="card">
+                        <h3 class="card-title">📊 İşlem Geçmişi</h3>
+                        
+                        ${logs && logs.length > 0 ? `
+                            <div style="overflow-x: auto;">
+                                <table class="table" style="width: 100%; border-collapse: collapse;">
+                                    <thead>
+                                        <tr style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+                                            <th style="padding: 12px; text-align: left;">Tarih</th>
+                                            <th style="padding: 12px; text-align: left;">İşlem Tipi</th>
+                                            <th style="padding: 12px; text-align: center;">Miktar</th>
+                                            <th style="padding: 12px; text-align: center;">Önceki Bakiye</th>
+                                            <th style="padding: 12px; text-align: center;">Yeni Bakiye</th>
+                                            <th style="padding: 12px; text-align: left;">Not</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${logs.map(log => {
+                                            const actionTypes = {
+                                                'manual_add': '👨‍💼 Manuel Ekleme',
+                                                'purchase': '💳 Paket Satın Alma',
+                                                'send': '📤 Mesaj Gönderimi',
+                                                'add': '➕ Ekleme',
+                                                'refund': '↩️ İade'
+                                            };
+                                            
+                                            return `
+                                                <tr style="border-bottom: 1px solid #dee2e6;">
+                                                    <td style="padding: 12px; font-size: 13px;">
+                                                        ${new Date(log.created_at).toLocaleDateString('tr-TR', {
+                                                            day: '2-digit',
+                                                            month: 'short',
+                                                            year: 'numeric',
+                                                            hour: '2-digit',
+                                                            minute: '2-digit'
+                                                        })}
+                                                    </td>
+                                                    <td style="padding: 12px; font-size: 13px;">
+                                                        ${actionTypes[log.action_type] || log.action_type}
+                                                    </td>
+                                                    <td style="padding: 12px; text-align: center; font-weight: 600; color: ${log.amount > 0 ? '#28a745' : '#dc3545'}; font-size: 14px;">
+                                                        ${log.amount > 0 ? '+' : ''}${log.amount.toLocaleString('tr-TR')}
+                                                    </td>
+                                                    <td style="padding: 12px; text-align: center; font-size: 13px; color: #6c757d;">
+                                                        ${log.previous_balance.toLocaleString('tr-TR')}
+                                                    </td>
+                                                    <td style="padding: 12px; text-align: center; font-weight: 600; font-size: 14px;">
+                                                        ${log.new_balance.toLocaleString('tr-TR')}
+                                                    </td>
+                                                    <td style="padding: 12px; font-size: 13px; color: #6c757d;">
+                                                        ${log.note || '-'}
+                                                    </td>
+                                                </tr>
+                                            `;
+                                        }).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ` : `
+                            <div style="text-align: center; padding: 40px; color: #999;">
+                                Henüz işlem geçmişi bulunmuyor
+                            </div>
+                        `}
+                    </div>
+                `;
+                
+            } catch (error) {
+                console.error('Error loading WhatsApp balance page:', error);
+                container.innerHTML = `
+                    <div class="card">
+                        <div style="text-align: center; padding: 40px; color: #dc3545;">
+                            <h3>❌ Yüklenirken Hata Oluştu</h3>
+                            <p>${error.message}</p>
+                            <button class="btn btn-primary" onclick="renderWhatsAppBalancePage()">🔄 Tekrar Dene</button>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+        
+        window.purchasePackage = async function(packageId, packageName, messageCount, price) {
+            // Şimdilik sadece iletişim bilgisi göster
+            showAlert(`
+                <div style="text-align: center;">
+                    <h3 style="margin-bottom: 15px;">📦 ${packageName}</h3>
+                    <p style="font-size: 16px; margin-bottom: 10px;">
+                        <strong>${messageCount.toLocaleString('tr-TR')}</strong> mesaj hakkı
+                    </p>
+                    <p style="font-size: 20px; color: #28a745; font-weight: 700; margin-bottom: 20px;">
+                        ₺${parseFloat(price).toLocaleString('tr-TR', {minimumFractionDigits: 2})}
+                    </p>
+                    <hr style="margin: 20px 0;">
+                    <p style="margin-bottom: 15px;">Satın alma işlemi için lütfen bizimle iletişime geçin:</p>
+                    <a href="tel:03623630063" style="display: inline-block; background: linear-gradient(135deg, #25D366 0%, #128C7E 100%); color: white; padding: 15px 30px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 18px; margin-top: 10px;">
+                        📞 0362 363 00 63
+                    </a>
+                </div>
+            `, 'info');
+        };
         
         // === WHATSAPP CALLS FUNCTIONS ===
         
@@ -29503,6 +29734,9 @@ Görev detaylarını kontrol ediniz.</textarea>
                         <span class="dropdown-arrow">▼</span>
                     </button>
                     <div class="dropdown-content">
+                        <button class="nav-btn sub-item" onclick="showSection('whatsapp-balance', this)">
+                            <span class="nav-text">💰 WhatsApp Bakiyem</span>
+                        </button>
                         <button class="nav-btn sub-item" onclick="showSection('whatsapp', this); switchWhatsAppTab('messages')">
                             <span class="nav-text">💬 Mesajlaşma</span>
                         </button>
@@ -29627,6 +29861,18 @@ Görev detaylarını kontrol ediniz.</textarea>
                                 <span>Yükleniyor...</span>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- WhatsApp Balance Section -->
+            <div id="whatsapp-balance" class="section">
+                <h2 class="card-title">💰 WhatsApp Bakiyem</h2>
+                
+                <div id="whatsapp-balance-content" style="display: flex; flex-direction: column; gap: 25px;">
+                    <div class="loading" style="text-align: center; padding: 40px;">
+                        <div class="spinner"></div>
+                        <span>Yükleniyor...</span>
                     </div>
                 </div>
             </div>
