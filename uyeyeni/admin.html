@@ -506,7 +506,7 @@
         
         // WhatsApp'ı otomatik başlat (connected cihaz varsa)
         async function autoStartWhatsApp() {
-            // Kısa bir gecikme ile cihazların yüklenmesini bekle
+            // Kısa bir gecikme ile Cihazların yüklenmesini bekle
             setTimeout(async () => {
                 if (whatsappDevices && whatsappDevices.length > 0) {
                     // Connected cihaz bul
@@ -825,7 +825,7 @@
                     console.log('🔄 Veri değişikliği tespit edildi, yenileniyor...');
                     await loadData(false); // Cache kullanmadan yenile
                     
-                    // Mesaj kuyruğunu işle
+                    // Mesaj Kuyruğunu işle
                     await processMessageQueue();
                     
                     // Mevcut section'ı yenile
@@ -1152,7 +1152,7 @@
                     }, 5000); // 5 saniye sonra başlat
                 }
                 
-                // ✅ Mesaj kuyruğunu ilk kez yükle
+                // ✅ Mesaj Kuyruğunu ilk kez yükle
                 setTimeout(() => {
                     renderMessageQueue();
                     processMessageQueue(); // İlk kontrol
@@ -1211,7 +1211,7 @@
                 if (currentValue) preRegBranchSelect.value = currentValue;
             }
             
-            // 2. Toplu mesaj branş seçimi (kulüp bazında)
+            // 2. Toplu Mesaj branş seçimi (kulüp bazında)
             const bulkBranchSelector = document.getElementById('bulk-branch-selector');
             if (bulkBranchSelector) {
                 const currentValue = bulkBranchSelector.value;
@@ -1221,7 +1221,7 @@
                     clubBranches.map(b => `<option value="${b.id}">${b.icon} ${b.name}</option>`).join('') + 
                     '<option value="all">✨ Tüm Branşlar</option>';
                 if (currentValue) bulkBranchSelector.value = currentValue;
-                console.log('✅ Toplu mesaj branş dropdown güncellendi:', clubBranches.length, 'branş');
+                console.log('✅ Toplu Mesaj branş dropdown güncellendi:', clubBranches.length, 'branş');
             }
             
             // 3. Aktivite filtresi
@@ -2927,7 +2927,7 @@ Adı Soyadı: <strong>[Buraya yetkili adı soyadını yazın]</strong><br>
             
             // Textarea'yı seç
             textarea.select();
-            textarea.setSelectionRange(0, 99999); // Mobil cihazlar için
+            textarea.setSelectionRange(0, 99999); // Mobil Cihazlar için
             
             // Clipboard'a kopyala
             try {
@@ -3976,7 +3976,7 @@ Görev detaylarını kontrol ediniz.</textarea>
             loadSentMessagesLog();
             updateBulkMessageSettings();
             loadWhatsAppSettings(); // Ayarları inputlara yükle
-            renderMessageQueue(); // Mesaj kuyruğunu göster
+            renderMessageQueue(); // Mesaj Kuyruğunu göster
             
             // 🔥 Start Firebase realtime listeners (Priority)
             startWhatsAppRealtimeListeners();
@@ -4059,7 +4059,7 @@ Görev detaylarını kontrol ediniz.</textarea>
             }
         }
         
-        // ✅ Toplu mesaj özetini ayarlara göre güncelle
+        // ✅ Toplu Mesaj özetini ayarlara göre güncelle
         function updateBulkMessageSettings() {
             const waitTimeDisplay = document.getElementById('bulk-wait-time-display');
             const longWaitTrigger = document.getElementById('bulk-long-wait-trigger');
@@ -4785,7 +4785,7 @@ Görev detaylarını kontrol ediniz.</textarea>
         
         // Tüm instance'lar için webhook event'lerini güncelle
         async function updateAllInstancesWebhookEvents() {
-            if (!confirm('Tüm WhatsApp cihazlarınız için çağrı event\'lerini aktif etmek istediğinizden emin misiniz?')) {
+            if (!confirm('Tüm WhatsApp Cihazlarınız için çağrı event\'lerini aktif etmek istediğinizden emin misiniz?')) {
                 return;
             }
             
@@ -5327,7 +5327,7 @@ Görev detaylarını kontrol ediniz.</textarea>
         };
         
         window.clearMessageReports = async function() {
-            if (!confirm('Tüm mesaj raporları silinecek. Emin misiniz?')) return;
+            if (!confirm('Tüm Mesaj Raporları silinecek. Emin misiniz?')) return;
             
             try {
                 console.log('Deleting messages:', sentMessages.length);
@@ -8919,7 +8919,7 @@ Görev detaylarını kontrol ediniz.</textarea>
                 // Local state güncelle
                 clubSettings = { ...clubSettings, ...settings };
                 
-                // ✅ Toplu mesaj özetini güncelle
+                // ✅ Toplu Mesaj özetini güncelle
                 updateBulkMessageSettings();
                 
                 showAlert('✅ WhatsApp ayarları başarıyla güncellendi.', 'success');
@@ -9073,7 +9073,7 @@ Görev detaylarını kontrol ediniz.</textarea>
         };
         
         // ============================================
-        // ✅ ÇALIŞMA SAATLERİ VE MESAJ KUYRUĞU
+        // ✅ ÇALIŞMA SAATLERİ VE Mesaj Kuyruğu
         // ============================================
         
         // Çalışma saatleri içinde mi kontrol et
@@ -9170,10 +9170,10 @@ Görev detaylarını kontrol ediniz.</textarea>
             return new Date().toISOString();
         }
         
-        // Mesaj kuyruğunu göster
+        // Mesaj Kuyruğunu göster
         async function renderMessageQueue() {
             try {
-                console.log('🔄 Mesaj kuyruğu yükleniyor...', { clubId: currentClubId });
+                console.log('🔄 Mesaj Kuyruğu yükleniyor...', { clubId: currentClubId });
                 
                 const container = document.getElementById('messageQueueList');
                 if (!container) {
@@ -9291,7 +9291,7 @@ Görev detaylarını kontrol ediniz.</textarea>
                 }
                 
                 container.innerHTML = html;
-                console.log('✅ Mesaj kuyruğu başarıyla render edildi:', {
+                console.log('✅ Mesaj Kuyruğu başarıyla render edildi:', {
                     pending: pendingSnapshot.size,
                     failed: failedSnapshot.size
                 });
@@ -10953,7 +10953,7 @@ Görev detaylarını kontrol ediniz.</textarea>
             }
         };
 
-        // ✅ Gecikmiş ödemelere toplu mesaj gönderme
+        // ✅ Gecikmiş ödemelere Toplu Mesaj gönderme
         window.sendBulkOverdueReminders = async function() {
             try {
                 // Check if template is enabled
@@ -16899,7 +16899,7 @@ Görev detaylarını kontrol ediniz.</textarea>
                     contactElement.click();
                 } else {
                     // Yeni mesaj başlat
-                    showToast(`💬 ${lead.fullName} ile WhatsApp mesajlaşması başlatılıyor...`, 'info');
+                    showToast(`💬 ${lead.fullName} ile WhatsApp Mesajlaşması başlatılıyor...`, 'info');
                 }
             }, 500);
         }
@@ -21427,7 +21427,7 @@ Görev detaylarını kontrol ediniz.</textarea>
                     const scheduledDate = new Date(startDate);
                     scheduledDate.setDate(scheduledDate.getDate() + dayOffset);
                     
-                    // Her alıcı için mesaj kuyruğuna ekle
+                    // Her alıcı için Mesaj Kuyruğuna ekle
                     for (const recipient of batch) {
                         const message = campaignData.messageContent
                             .replace(/{AD_SOYAD}/g, recipient.name || '')
@@ -30101,7 +30101,7 @@ Görev detaylarını kontrol ediniz.</textarea>
                              <button class="btn btn-danger btn-sm" onclick="setPaymentFilter('overdue', this)">Gecikmiş Ödemeler <span id="overdue-count"></span></button>
                              <button class="btn btn-success btn-sm" onclick="setPaymentFilter('finished', this)">Planı Bitenler <span id="finished-count"></span></button>
                         </div>
-                        <!-- ✅ Gecikmiş ödemelere toplu mesaj butonu -->
+                        <!-- ✅ Gecikmiş ödemelere Toplu Mesaj butonu -->
                         <button class="btn btn-warning btn-sm" onclick="sendBulkOverdueReminders()" style="margin-left: auto;">
                             📢 Gecikmiş Ödemelere Toplu Mesaj
                         </button>
@@ -31610,7 +31610,7 @@ Branş: {BRANS}<br>
                                     </div>
                                     <div id="whatsapp-messages-area" style="flex: 1; overflow-y: auto; padding: 20px; background-color: #E8DED3; background-image: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,.05) 10px, rgba(255,255,255,.05) 20px); max-height: calc(100vh - 300px); min-height: 400px;">
                                         <div class="empty-state" style="background: rgba(255,255,255,0.9); border-radius: 12px; padding: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-                                            <p style="margin: 0; color: #666; font-size: 15px;">👈 Soldan bir kişi seçin ve mesajlaşmaya başlayın</p>
+                                            <p style="margin: 0; color: #666; font-size: 15px;">👈 Soldan bir kişi seçin ve Mesajlaşmaya başlayın</p>
                                         </div>
                                     </div>
 
@@ -31705,7 +31705,7 @@ Branş: {BRANS}<br>
                         <div class="settings-subsection">
                             <h4 class="settings-subtitle">📱 WhatsApp Mesaj Gönderim Süreleri</h4>
                             <p style="color: #666; margin-bottom: 15px;">
-                                Toplu mesaj gönderimlerinde mesajlar arasında random (rastgele) bekleme süreleri kullanılır. 
+                                Toplu Mesaj gönderimlerinde mesajlar arasında random (rastgele) bekleme süreleri kullanılır. 
                                 Bu sayede mesajlar daha doğal görünür ve WhatsApp limitlerini aşmamış olursunuz.
                             </p>
                             
@@ -32244,7 +32244,7 @@ Branş: {BRANS}<br>
                         <h3>📢 Kampanya Oluştur</h3>
                     </div>
                     <p style="color: #666; margin-bottom: 20px;">
-                        CRM'deki müşterilere toplu mesaj gönderin. Filtreleme seçeneklerini kullanarak hedef kitlenizi belirleyin.
+                        CRM'deki müşterilere Toplu Mesaj gönderin. Filtreleme seçeneklerini kullanarak hedef kitlenizi belirleyin.
                     </p>
                     
                     <div id="campaign-form">
@@ -32604,7 +32604,7 @@ Branş: {BRANS}<br>
             <span class="close" onclick="closeModal('campaignModal')">&times;</span>
             <h3>📢 Yeni Kampanya Oluştur</h3>
             <p style="color: #666; margin-bottom: 20px;">
-                Toplu mesaj gönderin - Sistem, mesajları çalışma saatleri içinde parçalı olarak gönderir
+                Toplu Mesaj gönderin - Sistem, mesajları çalışma saatleri içinde parçalı olarak gönderir
             </p>
             <form id="campaignForm" onsubmit="handleCreateCampaign(event)">
                 <div class="form-group">
