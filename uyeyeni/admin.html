@@ -8898,10 +8898,11 @@ Görev detaylarını kontrol ediniz.</textarea>
                             throw error;
                         }
                     } else {
-                        // Insert new record
+                        // Insert new record (remove id field)
+                        const { id, ...recordWithoutId } = record;
                         const { error } = await supabase
                             .from('attendanceRecords')
-                            .insert(record);
+                            .insert(recordWithoutId);
                         if (error) {
                             console.error('Yoklama ekleme hatası:', error);
                             throw error;
