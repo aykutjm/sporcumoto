@@ -19054,7 +19054,7 @@ Görev detaylarını kontrol ediniz.</textarea>
                     </div>
                     
                     <div class="form-group" style="margin-bottom: 10px;">
-                        <label style="font-size: 11px; color: #666;">🏷️ Etiket *</label>
+                        <label style="font-size: 11px; color: #666;">&#x1F3F7;&#xFE0F; Etiket *</label>
                         <select class="form-control" required onchange="updateChildData(${index}, ${childIndex}, 'selectedTag', this.value); handleChildTagSelection(${index}, ${childIndex}, this)">
                             <option value="">Etiket seçiniz...</option>
                             ${nonBranchTags.map(tag => `<option value="${tag.name}" ${child.selectedTag === tag.name ? 'selected' : ''}>${tag.name}</option>`).join('')}
@@ -19063,12 +19063,12 @@ Görev detaylarını kontrol ediniz.</textarea>
                     
                     <div id="child-${index}-${childIndex}-dates" style="display: ${child.selectedTag ? 'block' : 'none'};">
                         <div id="child-${index}-${childIndex}-kayit" style="display: ${child.selectedTag === 'Kayıt Olabilir' ? 'block' : 'none'}; margin-bottom: 10px;">
-                            <label style="font-size: 11px; color: #666;">📅 Kayıt Olabilir Tarihi</label>
+                            <label style="font-size: 11px; color: #666;">&#x1F4C5; Kayıt Olabilir Tarihi</label>
                             <input type="datetime-local" value="${child.kayitOlabilirDate || ''}" class="form-control" onchange="updateChildData(${index}, ${childIndex}, 'kayitOlabilirDate', this.value)">
                         </div>
                         
                         <div id="child-${index}-${childIndex}-deneme" style="display: ${child.selectedTag === 'Denemeye Gelecek' ? 'block' : 'none'}; margin-bottom: 10px;">
-                            <label style="font-size: 11px; color: #666;">📅 Deneme Dersi Tarihi</label>
+                            <label style="font-size: 11px; color: #666;">&#x1F4C5; Deneme Dersi Tarihi</label>
                             <input type="datetime-local" value="${child.denemeDate || ''}" class="form-control" onchange="updateChildData(${index}, ${childIndex}, 'denemeDate', this.value)">
                         </div>
                     </div>
@@ -19117,14 +19117,14 @@ Görev detaylarını kontrol ediniz.</textarea>
                         <div id="branch-adult-dates-${index}" style="display: ${selectedTag ? 'block' : 'none'};">
                             <div id="branch-adult-kayit-${index}" style="display: ${selectedTag === 'Kayıt Olabilir' ? 'block' : 'none'};">
                                 <div class="form-group">
-                                    <label>📅 Kayıt Olabilir Tarihi</label>
+                                    <label>&#x1F4C5; Kayıt Olabilir Tarihi</label>
                                     <input type="datetime-local" name="branches[${index}][kayitOlabilirDate]" class="form-control" value="${kayitOlabilirDate || ''}">
                                 </div>
                             </div>
                             
                             <div id="branch-adult-deneme-${index}" style="display: ${selectedTag === 'Denemeye Gelecek' ? 'block' : 'none'};">
                                 <div class="form-group">
-                                    <label>📅 Deneme Dersi Tarihi</label>
+                                    <label>&#x1F4C5; Deneme Dersi Tarihi</label>
                                     <input type="datetime-local" name="branches[${index}][denemeDate]" class="form-control" value="${denemeDate || ''}">
                                 </div>
                             </div>
@@ -19329,7 +19329,7 @@ Görev detaylarını kontrol ediniz.</textarea>
                     </div>
                     
                     <div class="form-group" style="margin-bottom: 10px;">
-                        <label style="font-size: 11px; color: #666;">🏷️ Etiket</label>
+                        <label style="font-size: 11px; color: #666;">&#x1F3F7;&#xFE0F; Etiket</label>
                         <select class="form-control" onchange="updateChildData(${branchIndex}, ${childIndex}, 'selectedTag', this.value); handleChildTagSelection(${branchIndex}, ${childIndex}, this)">
                             <option value="">Etiket seçiniz...</option>
                             ${nonBranchTags.map(tag => `<option value="${tag.name}">${tag.name}</option>`).join('')}
@@ -19338,12 +19338,12 @@ Görev detaylarını kontrol ediniz.</textarea>
                     
                     <div id="child-${branchIndex}-${childIndex}-dates" style="display: none;">
                         <div id="child-${branchIndex}-${childIndex}-kayit" style="display: none; margin-bottom: 10px;">
-                            <label style="font-size: 11px; color: #666;">📅 Kayıt Olabilir Tarihi</label>
+                            <label style="font-size: 11px; color: #666;">&#x1F4C5; Kayıt Olabilir Tarihi</label>
                             <input type="datetime-local" class="form-control" onchange="updateChildData(${branchIndex}, ${childIndex}, 'kayitOlabilirDate', this.value)">
                         </div>
                         
                         <div id="child-${branchIndex}-${childIndex}-deneme" style="display: none; margin-bottom: 10px;">
-                            <label style="font-size: 11px; color: #666;">📅 Deneme Dersi Tarihi</label>
+                            <label style="font-size: 11px; color: #666;">&#x1F4C5; Deneme Dersi Tarihi</label>
                             <input type="datetime-local" class="form-control" onchange="updateChildData(${branchIndex}, ${childIndex}, 'denemeDate', this.value)">
                         </div>
                     </div>
@@ -20255,11 +20255,11 @@ Görev detaylarını kontrol ediniz.</textarea>
                                 </div>
                                 <div id="new-branch-adult-dates" style="display: none;">
                                     <div id="new-branch-adult-kayit" style="display: none;">
-                                        <label>📅 Kayıt Olabilir Tarihi</label>
+                                        <label>&#x1F4C5; Kayıt Olabilir Tarihi</label>
                                         <input type="datetime-local" name="kayitOlabilirDate" class="form-control">
                                     </div>
                                     <div id="new-branch-adult-deneme" style="display: none;">
-                                        <label>📅 Deneme Dersi Tarihi</label>
+                                        <label>&#x1F4C5; Deneme Dersi Tarihi</label>
                                         <input type="datetime-local" name="denemeDate" class="form-control">
                                     </div>
                                 </div>
@@ -20288,11 +20288,11 @@ Görev detaylarını kontrol ediniz.</textarea>
                                 </div>
                                 <div id="new-branch-child-dates" style="display: none;">
                                     <div id="new-branch-child-kayit" style="display: none;">
-                                        <label>📅 Kayıt Olabilir Tarihi</label>
+                                        <label>&#x1F4C5; Kayıt Olabilir Tarihi</label>
                                         <input type="datetime-local" name="childKayitDate" class="form-control">
                                     </div>
                                     <div id="new-branch-child-deneme" style="display: none;">
-                                        <label>📅 Deneme Dersi Tarihi</label>
+                                        <label>&#x1F4C5; Deneme Dersi Tarihi</label>
                                         <input type="datetime-local" name="childDenemeDate" class="form-control">
                                     </div>
                                 </div>
