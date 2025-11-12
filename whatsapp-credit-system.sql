@@ -94,6 +94,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS whatsapp_packages_updated_at ON whatsapp_packages;
 CREATE TRIGGER whatsapp_packages_updated_at
     BEFORE UPDATE ON whatsapp_packages
     FOR EACH ROW
