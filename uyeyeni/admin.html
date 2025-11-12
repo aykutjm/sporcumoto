@@ -8848,6 +8848,9 @@ Görev detaylarını kontrol ediniz.</textarea>
             if(!group) return showAlert('Grup bulunamadı', 'danger');
 
             const groupMembers = members.filter(m => Array.isArray(group.members) && group.members.includes(m.id) && m.status === 'active');
+            
+            // Array to store all attendance operations
+            const attendancePromises = [];
 
 
             for (const member of groupMembers) {
