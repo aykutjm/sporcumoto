@@ -1,0 +1,285 @@
+=== YENİ createPdf FONKSIYONU ===
+Bu kod kayit.html'de 1910-2194 satırları arasındaki eski createPdf fonksiyonunun yerine geçecek.
+
+async function createPdf(data) {
+    try {
+        console.log('🚀 ===== html2pdf.js ile PDF Oluşturuluyor =====');
+        
+        // ✅ Sözleşme HTML'ini hazırla
+        let contractHTML;
+        if (window.contractTemplate) {
+            console.log('📄 Admin panelden yüklenen sözleşme kullanılıyor');
+            contractHTML = replacePlaceholders(
+                window.contractTemplate, 
+                data, 
+                clubData, 
+                currentPreRegistration.paymentSchedule
+            );
+        } else {
+            console.log('📄 Varsayılan sözleşme kullanılıyor');
+            const sections = getContractSections(clubData, data, currentPreRegistration.paymentSchedule);
+            contractHTML = sections.join('\n\n');
+        }
+        
+        console.log('📄 Sözleşme hazırlandı:', contractHTML.length, 'karakter');
+        
+        // ✅ <hr> → CSS page-break
+        contractHTML = contractHTML.replace(/<hr\s*\/?>/gi, '<div class="page-break"></div>');
+        
+        // ✅ Başlık
+        const headerTitle = pageHeaderTitle || clubData?.name || 'Spor Kulübü';
+        
+        // ✅ Tam HTML dokümant - CSS ile sayfalama kontrolü
+        const fullHTML = `
+            <style>
+                /* ===== TEMEL STİLLER ===== */
+                body {
+                    font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+                    font-size: 11pt;
+                    line-height: 1.6;
+                    color: #1f2937;
+                    margin: 0;
+                    padding: 0;
+                }
+                
+                /* ===== SAYFA SONU KONTROLLARI ===== */
+                h1, h2, h3, h4, h5, h6 {
+                    page-break-after: avoid; /* Başlıktan sonra sayfa sonu olmasın */
+                    page-break-inside: avoid; /* Başlık bölünmesin */
+                }
+                
+                /* ===== BAŞLIKLAR ===== */
+                h1 {
+                    font-size: 18pt;
+                    font-weight: bold;
+                    color: #667eea;
+                    text-align: center;
+                    border-bottom: 2pt solid #667eea;
+                    padding-bottom: 10pt;
+                    margin-bottom: 20pt;
+                }
+                
+                h4 {
+                    font-size: 13pt;
+                    font-weight: bold;
+                    color: #374151;
+                    margin-top: 15pt;
+                    margin-bottom: 10pt;
+                }
+                
+                h3, h5 {
+                    font-size: 11pt;
+                    font-weight: 600;
+                    color: #4b5563;
+                    margin: 12pt 0 8pt 0;
+                }
+                
+                /* ===== PARAGRAFLAR ===== */
+                p {
+                    margin: 8pt 0;
+                    text-align: justify;
+                    line-height: 1.7;
+                    orphans: 3; /* Min 3 satır sayfa altında kalabilir */
+                    widows: 3; /* Min 3 satır yeni sayfaya geçebilir */
+                }
+                
+                strong, b {
+                    font-weight: bold;
+                    color: #111827;
+                }
+                
+                /* ===== LİSTELER ===== */
+                ul, ol {
+                    margin: 10pt 0 10pt 20pt;
+                    line-height: 1.8;
+                    page-break-inside: avoid; /* Liste bölünmesin */
+                }
+                
+                li {
+                    margin: 5pt 0;
+                }
+                
+                /* ===== TABLOLAR ===== */
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin: 12pt 0;
+                    font-size: 9pt;
+                    page-break-inside: avoid; /* Tablo bölünmesin */
+                }
+                
+                th, td {
+                    border: 1pt solid #d1d5db;
+                    padding: 6pt 5pt;
+                    text-align: left;
+                }
+                
+                th {
+                    background-color: #f3f4f6;
+                    font-weight: bold;
+                    color: #374151;
+                }
+                
+                td {
+                    background-color: #ffffff;
+                }
+                
+                /* ===== MANUEL SAYFA SONU ===== */
+                .page-break {
+                    page-break-before: always;
+                    clear: both;
+                }
+                
+                /* ===== İMZA BLOĞU (HER SAYFADA) ===== */
+                .signature-footer {
+                    position: fixed;
+                    bottom: 0;
+                    left: 0;
+                    right: 0;
+                    text-align: center;
+                    padding: 10pt 15pt;
+                    border-top: 1pt solid #e5e7eb;
+                    background: white;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    flex-direction: column;
+                }
+                
+                .signature-footer img {
+                    width: 100pt;
+                    height: 50pt;
+                    border: 1pt solid #d1d5db;
+                    border-radius: 3pt;
+                    background: white;
+                }
+                
+                .signature-footer p {
+                    margin: 5pt 0 0 0;
+                    font-size: 9pt;
+                    color: #4b5563;
+                }
+                
+                /* Print optimization */
+                @media print {
+                    body {
+                        -webkit-print-color-adjust: exact;
+                        print-color-adjust: exact;
+                    }
+                }
+            </style>
+            <div style="padding-bottom: 80pt;"> <!-- İmza için alan bırak -->
+                <h1>${headerTitle} Üyelik Sözleşmesi</h1>
+                ${contractHTML}
+            </div>
+            <div class="signature-footer">
+                <img src="${data.signature}" alt="İmza" />
+                <p><strong>${data.Ad_Soyad}</strong></p>
+                <p>${new Date(data.timestamp).toLocaleString('tr-TR', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                })}</p>
+            </div>
+        `;
+        
+        // ✅ Geçici element oluştur
+        const element = document.createElement('div');
+        element.innerHTML = fullHTML;
+        element.style.position = 'absolute';
+        element.style.left = '-9999px';
+        element.style.width = '210mm'; // A4 genişliği
+        document.body.appendChild(element);
+        
+        console.log('🔄 PDF render başlıyor... (10-30 saniye sürebilir)');
+        
+        // ✅ html2pdf ayarları
+        const opt = {
+            margin: [20, 15, 25, 15], // mm [üst, sağ, alt, sol]
+            filename: `sozlesme_${data.Ad_Soyad.replace(/\s+/g, '_')}.pdf`,
+            image: { type: 'jpeg', quality: 0.95 },
+            html2canvas: { 
+                scale: 2,
+                useCORS: true,
+                allowTaint: true,
+                letterRendering: true, // Türkçe karakterler
+                logging: false,
+                backgroundColor: '#ffffff'
+            },
+            jsPDF: { 
+                unit: 'mm',
+                format: 'a4',
+                orientation: 'portrait',
+                compress: true
+            },
+            pagebreak: {
+                mode: ['avoid-all', 'css', 'legacy'], // CSS page-break desteği
+                before: '.page-break', // .page-break class'ından önce sayfa sonu
+                avoid: ['table', 'ul', 'ol', 'img', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'] // Bu elementler bölünmez
+            }
+        };
+        
+        // ✅ PDF oluştur
+        const pdf = await html2pdf().set(opt).from(element).toPdf().get('pdf');
+        
+        // ✅ Geçici element'i temizle
+        document.body.removeChild(element);
+        
+        // ✅ Sayfa numaraları ekle
+        const totalPages = pdf.internal.getNumberOfPages();
+        console.log(`📊 Toplam sayfa sayısı: ${totalPages}`);
+        
+        for (let i = 1; i <= totalPages; i++) {
+            pdf.setPage(i);
+            pdf.setFontSize(9);
+            pdf.setTextColor(128);
+            pdf.text(
+                `Sayfa ${i} / ${totalPages}`,
+                190, // X pozisyonu (mm)
+                287, // Y pozisyonu (mm) - Sayfa altı
+                { align: 'right' }
+            );
+        }
+        
+        console.log('✅ Sayfa numaraları eklendi');
+        console.log('✅ ===== PDF BAŞARIYLA OLUŞTURULDU =====');
+        
+        return pdf;
+        
+    } catch (error) {
+        console.error('❌ PDF oluşturma hatası:', error);
+        throw new Error('Sözleşme PDF dosyası oluşturulurken bir hata oluştu: ' + error.message);
+    }
+}
+
+=== DEĞİŞİKLİK NOTU ===
+Bu yeni fonksiyon:
+✅ html2pdf.js kullanıyor (eski html2canvas yerine)
+✅ CSS page-break desteği var (otomatik sayfalama)
+✅ Her sayfada imza bloğu görünüyor (fixed position footer)
+✅ Satır sonları ve paragraflar korunuyor
+✅ Tablolar ve listeler bölünmüyor (page-break-inside: avoid)
+✅ Başlıklar içerikleriyle aynı sayfada kalıyor (page-break-after: avoid)
+✅ Türkçe karakter desteği tam (letterRendering: true)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

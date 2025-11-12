@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Giriş Yap | Sporcum</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ccircle cx=%2750%27 cy=%2750%27 r=%2748%27 fill=%27%234f46e5%27/%3E%3Ctext x=%2750%27 y=%2772%27 font-family=%27Arial,sans-serif%27 font-size=%2760%27 font-weight=%27bold%27 fill=%27white%27 text-anchor=%27middle%27%3ES%3C/text%3E%3C/svg%3E">
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -18,7 +19,125 @@
     
     <!-- Supabase SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="supabase-helper.js"></script>
+    <script>
+        // ✅ INLINE SUPABASE HELPER
+        console.log('%c🚀 INLINE SUPABASE HELPER YÜKLENDI!', 'background: #00ff00; color: #000; font-size: 20px; font-weight: bold; padding: 10px;');
+        
+        let supabaseClient = null;
+        let currentUser = null;
+        let currentClubId = null;
+
+        function initSupabase(url, anonKey) {
+            supabaseClient = window.supabase.createClient(url, anonKey);
+            return supabaseClient;
+        }
+
+        const auth = {
+            async signInWithEmailAndPassword(email, password) {
+                const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+                if (error) throw error;
+                currentUser = data.user;
+                return { user: data.user };
+            },
+            async signOut() {
+                const { error } = await supabaseClient.auth.signOut();
+                if (error) throw error;
+                currentUser = null;
+            },
+            async onAuthStateChanged(callback) {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (session) {
+                    currentUser = session.user;
+                    callback(session.user);
+                }
+                const { data: authListener } = supabaseClient.auth.onAuthStateChange((event, session) => {
+                    currentUser = session?.user || null;
+                    callback(session?.user || null);
+                });
+                return authListener;
+            },
+            async getCurrentUser() {
+                const { data: { user } } = await supabaseClient.auth.getUser();
+                currentUser = user;
+                return user;
+            }
+        };
+
+        const db = {
+            collection(tableName) {
+                return { tableName, query: supabaseClient.from(tableName) };
+            },
+            async getDocs(collectionRef, queryOptions = {}) {
+                let query = supabaseClient.from(collectionRef.tableName).select('*');
+                if (queryOptions.where) {
+                    for (const condition of queryOptions.where) {
+                        const [field, operator, value] = condition;
+                        switch (operator) {
+                            case '==': query = query.eq(field, value); break;
+                            case '!=': query = query.neq(field, value); break;
+                            case '>': query = query.gt(field, value); break;
+                            case '>=': query = query.gte(field, value); break;
+                            case '<': query = query.lt(field, value); break;
+                            case '<=': query = query.lte(field, value); break;
+                            case 'in': query = query.in(field, value); break;
+                            case 'array-contains': query = query.contains(field, [value]); break;
+                        }
+                    }
+                }
+                if (queryOptions.orderBy) {
+                    const [field, direction = 'asc'] = queryOptions.orderBy;
+                    query = query.order(field, { ascending: direction === 'asc' });
+                }
+                if (queryOptions.limit) query = query.limit(queryOptions.limit);
+                const { data, error } = await query;
+                if (error) throw error;
+                const docs = data.map(doc => ({ id: doc.id, data: () => doc, exists: () => true }));
+                return { docs: docs, size: data.length, empty: data.length === 0 };
+            },
+            async getDoc(docRef) {
+                const { data, error } = await supabaseClient.from(docRef.tableName).select('*').eq('id', docRef.id).maybeSingle();
+                if (error) throw error;
+                return { id: docRef.id, data: () => data || {}, exists: () => !!data };
+            },
+            async addDoc(collectionRef, data) {
+                if (currentClubId && !data.clubId) data.clubId = currentClubId;
+                if (!data.id) data.id = `${collectionRef.tableName}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                const { data: result, error } = await supabaseClient.from(collectionRef.tableName).insert([data]).select().maybeSingle();
+                if (error) throw error;
+                return { id: result.id, data: () => result };
+            },
+            async updateDoc(docRef, data) {
+                const { data: result, error } = await supabaseClient.from(docRef.tableName).update(data).eq('id', docRef.id).select().maybeSingle();
+                if (error) throw error;
+                return result;
+            },
+            async deleteDoc(docRef) {
+                const { error } = await supabaseClient.from(docRef.tableName).delete().eq('id', docRef.id);
+                if (error) throw error;
+            },
+            doc(tableName, id) {
+                return { tableName, id };
+            },
+            query(collectionRef, ...conditions) {
+                const queryOptions = { where: [], orderBy: null, limit: null };
+                conditions.forEach(condition => {
+                    if (condition.type === 'where') queryOptions.where.push([condition.field, condition.operator, condition.value]);
+                    else if (condition.type === 'orderBy') queryOptions.orderBy = [condition.field, condition.direction];
+                    else if (condition.type === 'limit') queryOptions.limit = condition.value;
+                });
+                return { ...collectionRef, queryOptions };
+            }
+        };
+
+        function where(field, operator, value) { return { type: 'where', field, operator, value }; }
+        function orderBy(field, direction = 'asc') { return { type: 'orderBy', field, direction }; }
+        function limit(value) { return { type: 'limit', value }; }
+        const arrayUnion = (...elements) => ({ _type: 'arrayUnion', elements });
+        const arrayRemove = (...elements) => ({ _type: 'arrayRemove', elements });
+        function setCurrentClubId(clubId) { currentClubId = clubId; }
+
+        window.supabaseHelper = { initSupabase, auth, db, where, orderBy, limit, arrayUnion, arrayRemove, setCurrentClubId };
+    </script>
     <script type="module">
         // IMPORTANT: Replace with your actual Supabase configuration
         const SUPABASE_URL = 'https://supabase.edu-ai.online';
@@ -26,27 +145,27 @@
 
         // Supabase başlat
         const supabase = window.supabaseHelper.initSupabase(SUPABASE_URL, SUPABASE_ANON_KEY);
-        const auth = window.supabaseHelper.auth;
-        const db = window.supabaseHelper.db;
+        const authHelper = window.supabaseHelper.auth;
+        const dbHelper = window.supabaseHelper.db;
 
         // Global olarak kullanılabilmesi için
         window.firebase = {
-            auth: auth,
-            db: db,
-            signInWithEmailAndPassword: (email, password) => auth.signInWithEmailAndPassword(email, password),
+            auth: authHelper,
+            db: dbHelper,
+            signInWithEmailAndPassword: (email, password) => authHelper.signInWithEmailAndPassword(email, password),
             // collection() 1 veya 2 parametre alabilir (Firebase uyumluluğu için)
             collection: (dbRefOrName, collectionName) => {
                 // Eğer 2 parametre varsa, ikincisini kullan (collection name)
                 const tableName = collectionName || dbRefOrName;
-                return db.collection(tableName);
+                return dbHelper.collection(tableName);
             },
-            query: (collectionRef, ...conditions) => db.query(collectionRef, ...conditions),
+            query: (collectionRef, ...conditions) => dbHelper.query(collectionRef, ...conditions),
             where: window.supabaseHelper.where,
-            getDocs: (collectionRef) => db.getDocs(collectionRef, collectionRef.queryOptions)
+            getDocs: (collectionRef) => dbHelper.getDocs(collectionRef, collectionRef.queryOptions)
         };
         
         window.supabase = supabase;
-        window.db = db;
+        window.db = dbHelper;
         window.auth = auth;
 
         console.log('Supabase initialized');
@@ -435,4 +554,6 @@
     </script>
 </body>
 </html>
+
+
 

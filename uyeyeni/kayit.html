@@ -4,44 +4,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Spor Kulübü - Üyelik Sözleşmesi</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ccircle cx=%2750%27 cy=%2750%27 r=%2748%27 fill=%27%234f46e5%27/%3E%3Ctext x=%2750%27 y=%2772%27 font-family=%27Arial,sans-serif%27 font-size=%2760%27 font-weight=%27bold%27 fill=%27white%27 text-anchor=%27middle%27%3ES%3C/text%3E%3C/svg%3E">
     <!-- Gerekli Kütüphaneler -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     
     <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="supabase-helper.js"></script>
-    <script type="module">
+    <script>
         // IMPORTANT: Replace with your actual Supabase configuration
         const SUPABASE_URL = 'https://supabase.edu-ai.online';
         const SUPABASE_ANON_KEY = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzdXBhYmFzZSIsImlhdCI6MTc2MjEwNTMyMCwiZXhwIjo0OTE3Nzc4OTIwLCJyb2xlIjoiYW5vbiJ9.HXUza0GT82-trWkx0WWKe-nY7KsGrIjIHSOJPKsOHjs';
         
-        // Initialize Supabase
-        const supabase = window.supabaseHelper.initSupabase(SUPABASE_URL, SUPABASE_ANON_KEY);
-        const db = window.supabaseHelper.db;
+        // Direkt Supabase client oluştur (helper kullanmadan)
+        const { createClient } = supabase;
+        window.supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         
-        window.supabase = supabase;
-        window.db = db;
-        window.firebase = {
-            // collection() 1 veya 2 parametre alabilir (Firebase uyumluluğu için)
-            collection: (dbRefOrName, collectionName) => {
-                const tableName = collectionName || dbRefOrName;
-                return db.collection(tableName);
-            },
-            addDoc: (collectionRef, data) => db.addDoc(collectionRef, data),
-            // getDocs() queryOptions'ı da geçmeli
-            getDocs: (collectionRef) => db.getDocs(collectionRef, collectionRef.queryOptions),
-            getDoc: (docRef) => db.getDoc(docRef),
-            updateDoc: (docRef, data) => db.updateDoc(docRef, data),
-            // doc() 2 veya 3 parametre alabilir
-            doc: (dbRefOrName, collectionOrId, id) => {
-                const tableName = id ? collectionOrId : dbRefOrName;
-                const docId = id || collectionOrId;
-                return db.doc(tableName, docId);
-            },
-            query: (collectionRef, ...conditions) => db.query(collectionRef, ...conditions),
-            where: window.supabaseHelper.where
-        };
+        console.log('✅ Supabase initialized:', window.supabase);
     </script>
     
     <style>
@@ -224,7 +203,7 @@
     <div class="container" id="main-container">
         <div class="header">
             <h1 id="clubNameHeader">Yükleniyor...</h1>
-            <p>Online Üyelik Sözleşmesi</p>
+            <p id="clubSubtitleHeader">Online Üyelik Sözleşmesi</p>
         </div>
         <div class="form-container">
             <div id="progress-bar">
@@ -242,9 +221,7 @@
                         <div class="form-group">
                             <label for="branchSelection">Branş Seçimi *</label>
                             <select id="branchSelection" required>
-                                <option value="">Seçiniz...</option>
-                                <option value="tenis">🎾 Tenis</option>
-                                <option value="yuzme">🏊 Yüzme</option>
+                                <option value="">Yükleniyor...</option>
                             </select>
                         </div>
                         <div class="form-group">
@@ -311,8 +288,8 @@
                 </div>
                  <!-- Başarı mesajı formun içine taşındı -->
                  <div id="successMessage" class="alert alert-success">
-                     <h3>🎉 Üyeliğiniz Tamamlandı!</h3>
-                     <p>Üyelik sözleşmeniz kulübümüze başarıyla ulaşmıştır. Ailemize katıldığınız için teşekkür eder, keyifli bir spor yolculuğu dileriz.</p>
+                     <h3 id="successTitle">🎉 Kayıt İşleminiz Tamamlandı!</h3>
+                     <p id="successMessageText">Ailemize hoş geldiniz! Üyelik sözleşmeniz kulübümüze başarıyla ulaşmıştır. En kısa sürede sizinle iletişime geçeceğiz.</p>
                      <div class="iban-container" id="iban-container">
                         <!-- IBAN bilgileri dinamik olarak yüklenecek -->
                     </div>
@@ -341,6 +318,8 @@
     let clubData = null; // Firebase'den yüklenecek kulüp bilgisi
     let contractTemplate = ''; // Admin'den yüklenecek sözleşme şablonu
     let ibanData = null; // IBAN bilgileri
+    let clubBranches = []; // Kulüp branşları
+    let branchPayments = null; // Branş bazlı ödeme bilgileri
     
     // URL-friendly slug oluştur
     function createSlug(text) {
@@ -373,35 +352,41 @@
             
             console.log('🔍 Club slug:', clubSlug);
             
-            // settings koleksiyonundaki tüm club_* dökümanlarını oku
-            const settingsSnapshot = await window.firebase.getDocs(
-                window.firebase.collection(window.db, 'settings')
-            );
+            // ✅ Supabase clubs tablosundan tüm kulüpleri çek
+            const { data: clubsData, error: clubsError } = await window.supabase
+                .from('clubs')
+                .select('id, name, active');
             
-            const allClubs = [];
-            for (const doc of settingsSnapshot.docs) {
-                if (doc.id.startsWith('club_')) {
-                    const docClubId = doc.id.replace('club_', '');
-                    const data = doc.data();
-                    const docClubName = data.clubName || '';
-                    const docSlug = createSlug(docClubName);
-                    
-                    allClubs.push({ id: docClubId, name: docClubName, slug: docSlug });
-                    console.log(`📋 Kontrol: "${docClubName}" → "${docSlug}"`);
-                    
-                    if (docSlug === clubSlug) {
-                        realClubId = docClubId;
-                        console.log('✅ Club bulundu! ID:', realClubId);
-                        return;
-                    }
+            if (clubsError) {
+                console.error('❌ Clubs tablosu okuma hatası:', clubsError);
+                throw clubsError;
+            }
+            
+            // Active olan veya active kolonu olmayan kulüpleri filtrele
+            const activeClubs = clubsData ? clubsData.filter(c => c.active !== false) : [];
+            
+            if (!activeClubs || activeClubs.length === 0) {
+                throw new Error('Hiç aktif kulüp bulunamadı!');
+            }
+            
+            // Her kulübün slug'ını oluştur ve karşılaştır
+            for (const club of activeClubs) {
+                const docSlug = createSlug(club.name || '');
+                console.log(`Karşılaştırma: "${docSlug}" === "${clubSlug}"`);
+                
+                if (docSlug === clubSlug) {
+                    realClubId = club.id;
+                    console.log('✅ Club bulundu! ID:', realClubId, 'Name:', club.name);
+                    return;
                 }
             }
             
-            console.error('❌ Eşleşme bulunamadı!');
-            console.error('📥 Aranan slug:', clubSlug);
-            console.table(allClubs);
+            console.error('❌ Kulüp bulunamadı! Slug:', clubSlug);
+            const availableClubs = activeClubs.map(c => ({ id: c.id, name: c.name, slug: createSlug(c.name) }));
+            console.log('Mevcut kulüpler:', availableClubs);
             
-            throw new Error(`Kulüp bulunamadı: ${clubSlug}. Console'u kontrol edin.`);
+            const clubList = availableClubs.map(c => `${c.name} (slug: ${c.slug})`).join(', ');
+            throw new Error(`Kulüp bulunamadı: "${clubSlug}". Mevcut kulüpler: ${clubList}`);
         } catch (error) {
             console.error('❌ Club slug çözümleme hatası:', error);
             alert('Kulüp bilgisi yüklenemedi. Lütfen doğru linki kullandığınızdan emin olun.');
@@ -414,32 +399,36 @@
         if (!realClubId) return;
         
         try {
-            // settings/club_${clubId} dökümanından oku
-            const clubDoc = await window.firebase.getDoc(
-                window.firebase.doc(window.db, 'settings', `club_${realClubId}`)
-            );
+            // ✅ Supabase clubs tablosundan kulüp bilgilerini çek
+            const { data: clubInfo, error: clubError } = await window.supabase
+                .from('clubs')
+                .select('*')
+                .eq('id', realClubId)
+                .single();
             
-            if (clubDoc.exists()) {
-                const data = clubDoc.data();
+            if (clubError) {
+                console.error('❌ Club bilgisi okuma hatası:', clubError);
+                throw clubError;
+            }
+            
+            if (clubInfo) {
                 clubData = {
-                    name: data.clubName || 'Spor Kulübü',
-                    officialName: data.clubOfficialName || data.clubName || 'Spor Kulübü',
-                    contactName: data.contactName || '',
-                    address: data.address || '',
-                    taxNo: data.taxNo || '',
-                    phone: data.phone || '',
-                    email: data.email || ''
+                    name: clubInfo.name || 'Spor Kulübü',
+                    officialName: clubInfo.name || 'Spor Kulübü',
+                    contactName: clubInfo.adminName || '',
+                    address: clubInfo.description || '',
+                    taxNo: '',
+                    phone: clubInfo.phone || '',
+                    email: clubInfo.adminEmail || ''
                 };
                 
                 // Başlığı güncelle
-                const headerEl = document.getElementById('clubNameHeader');
-                if (headerEl) {
-                    headerEl.textContent = clubData.name;
-                }
+                // Başlığı burada ayarlama, loadContractTemplate'de ayarlanacak
+                // (pageTitle varsa onu, yoksa clubData.name kullanılacak)
                 
                 console.log('✅ Club data yüklendi:', clubData.name);
             } else {
-                throw new Error('Kulüp ayarları bulunamadı: settings/club_' + realClubId);
+                throw new Error('Kulüp bulunamadı: ' + realClubId);
             }
         } catch (error) {
             console.error('❌ Club data yükleme hatası:', error);
@@ -452,13 +441,57 @@
         if (!realClubId) return;
         
         try {
-            const contractDoc = await window.firebase.getDoc(
-                window.firebase.doc(window.db, 'settings', `contract_${realClubId}`)
-            );
+            // ✅ 1) Supabase branches tablosundan bu kulübün branşlarını yükle
+            console.log('📥 Branşlar yükleniyor (Supabase)... clubId:', realClubId);
             
-            if (contractDoc.exists() && contractDoc.data().enabled && contractDoc.data().text) {
-                const data = contractDoc.data();
-                contractTemplate = data.text;
+            try {
+                // Supabase'den branches tablosunu sorgula
+                const { data: branchesData, error: branchesError } = await window.supabase
+                    .from('branches')
+                    .select('*')
+                    .eq('clubId', realClubId)
+                    .eq('isActive', true)
+                    .order('branchName', { ascending: true });
+                
+                if (branchesError) {
+                    console.error('❌ Supabase branches yükleme hatası:', branchesError);
+                } else if (branchesData && branchesData.length > 0) {
+                    clubBranches = branchesData.map(branch => ({
+                        id: branch.branchId || branch.id,
+                        name: branch.branchName,
+                        icon: branch.icon || '🏆',
+                        isActive: branch.isActive !== false,
+                        color: branch.color || '#4CAF50'
+                    }));
+                    console.log('✅ Branşlar yüklendi (Supabase branches):', clubBranches);
+                } else {
+                    console.warn('⚠️ Supabase branches tablosunda branş bulunamadı');
+                }
+                
+                // Branş seçim dropdown'unu doldur
+                if (clubBranches.length > 0) {
+                    populateBranchSelection();
+                } else {
+                    console.warn('⚠️ Hiç aktif branş bulunamadı!');
+                }
+            } catch (branchError) {
+                console.error('❌ Branş yükleme hatası:', branchError);
+            }
+            
+            // ✅ 2) Contract template'i yükle
+            const { data: contractData, error: contractError } = await window.supabase
+                .from('settings')
+                .select('*')
+                .eq('id', `contract_${realClubId}`)
+                .single();
+            
+            if (contractError && contractError.code !== 'PGRST116') {
+                console.error('Contract template yükleme hatası:', contractError);
+            }
+            
+            if (contractData && contractData.enabled && contractData.text) {
+                const data = contractData;
+                window.contractTemplate = data.text;
                 
                 // Checkbox metinlerini ayarla
                 if (data.checkbox1Text) {
@@ -483,54 +516,120 @@
                     }
                 }
                 
-                console.log('✅ Contract template yüklendi:', contractTemplate.length, 'karakter');
+                // ✅ Sayfa başlığını ayarla
+                const clubNameHeader = document.getElementById('clubNameHeader');
+                if (clubNameHeader) {
+                    // pageTitle varsa onu kullan, yoksa clubData.name kullan
+                    if (data.pageTitle && data.pageTitle.trim()) {
+                        clubNameHeader.textContent = data.pageTitle;
+                        console.log('✅ Sayfa başlığı ayarlandı (pageTitle):', data.pageTitle);
+                    } else if (clubData && clubData.name) {
+                        clubNameHeader.textContent = clubData.name;
+                        console.log('✅ Sayfa başlığı ayarlandı (clubData.name):', clubData.name);
+                    }
+                }
+                
+                if (data.pageSubtitle && data.pageSubtitle.trim()) {
+                    const clubSubtitleHeader = document.getElementById('clubSubtitleHeader');
+                    if (clubSubtitleHeader) {
+                        clubSubtitleHeader.textContent = data.pageSubtitle;
+                    }
+                }
+                
+                console.log('✅ Contract template yüklendi:', window.contractTemplate.length, 'karakter');
+                
+                // ✅ IBAN/Ödeme bilgilerini contract içinden yükle
+                if (data.branchPayments) {
+                    ibanData = data.branchPayments;
+                    branchPayments = data.branchPayments;
+                    console.log('💳 Branş bazlı ödeme bilgileri yüklendi:', Object.keys(ibanData));
+                } else {
+                    console.log('ℹ️ Contract içinde branchPayments yok');
+                    ibanData = {};
+                }
             } else {
-                console.log('ℹ️ Custom contract template yok, varsayılan kullanılacak');
+                console.log('ℹ️ Custom contract template yok veya etkin değil, varsayılan kullanılacak');
+                window.contractTemplate = null; // Varsayılan şablonun kullanılması için
+                ibanData = {};
+                
+                // Contract template yoksa da başlığı ayarla
+                const clubNameHeader = document.getElementById('clubNameHeader');
+                if (clubNameHeader && clubData && clubData.name) {
+                    clubNameHeader.textContent = clubData.name;
+                    console.log('✅ Sayfa başlığı ayarlandı (clubData.name - default):', clubData.name);
+                }
             }
         } catch (error) {
             console.error('❌ Contract template yükleme hatası:', error);
+            ibanData = {};
+            
+            // Hata olsa bile başlığı ayarla
+            const clubNameHeader = document.getElementById('clubNameHeader');
+            if (clubNameHeader && clubData && clubData.name) {
+                clubNameHeader.textContent = clubData.name;
+                console.log('✅ Sayfa başlığı ayarlandı (clubData.name - fallback):', clubData.name);
+            }
+        }
+    }
+    
+    // Branş seçim dropdown'unu doldur
+    function populateBranchSelection() {
+        const branchSelect = document.getElementById('branchSelection');
+        if (!branchSelect) {
+            console.error('❌ Branş seçim elemanı bulunamadı!');
+            return;
         }
         
-        // ✅ Branş listesini ve ödeme bilgilerini yükle
-        try {
-            const branchesDoc = await window.firebase.getDoc(
-                window.firebase.doc(window.db, 'settings', `branches_${realClubId}`)
-            );
+        // Aktif branşları filtrele
+        const activeBranches = clubBranches.filter(branch => branch.isActive !== false);
+        
+        // Mevcut seçenekleri temizle
+        branchSelect.innerHTML = '';
+        
+        // Eğer birden fazla branş varsa "Seçiniz..." ekle
+        if (activeBranches.length > 1) {
+            const emptyOption = document.createElement('option');
+            emptyOption.value = '';
+            emptyOption.textContent = 'Seçiniz...';
+            branchSelect.appendChild(emptyOption);
+        }
+        
+        // Branşları ekle
+        if (activeBranches.length > 0) {
+            activeBranches.forEach(branch => {
+                const option = document.createElement('option');
+                option.value = branch.id;
+                option.textContent = `${branch.icon || '🏆'} ${branch.name}`;
+                branchSelect.appendChild(option);
+            });
             
-            if (branchesDoc.exists()) {
-                const branchData = branchesDoc.data();
-                const branchesList = branchData.list || [];
+            // ✅ Eğer tek branş varsa otomatik seç
+            if (activeBranches.length === 1) {
+                branchSelect.value = activeBranches[0].id;
+                console.log('✅ Tek branş otomatik seçildi:', activeBranches[0].name);
                 
-                // Her branş için ödeme bilgilerini ibanData'ya kaydet
-                ibanData = {};
-                branchesList.forEach(branch => {
-                    if (branch.id && (branch.iban || branch.bankName || branch.accountHolder)) {
-                        ibanData[branch.id] = {
-                            iban: branch.iban || '',
-                            bankName: branch.bankName || '',
-                            accountHolder: branch.accountHolder || '',
-                            paymentInstructions: branch.paymentInstructions || '',
-                            branchName: branch.name || branch.id
-                        };
-                    }
-                });
-                
-                console.log('💳 Branş bazlı ödeme bilgileri yüklendi:', ibanData);
-            } else {
-                console.log('ℹ️ Branş bilgisi bulunamadı');
-                ibanData = {};
+                // ✅ Branş seçildiğinde attempt advance'i tetikle (telefon varsa)
+                setTimeout(() => attemptAdvanceFromStep1(), 100);
             }
-        } catch (error) {
-            console.error('❌ Branş bilgileri yükleme hatası:', error);
-            ibanData = {};
+            
+            console.log('✅ Branş seçenekleri eklendi:', activeBranches.length, 'aktif branş');
+        } else {
+            console.warn('⚠️ Aktif branş bulunamadı!');
+            // Branş yoksa uyarı göster
+            const emptyOption = document.createElement('option');
+            emptyOption.value = '';
+            emptyOption.textContent = 'Henüz branş tanımlanmamış';
+            emptyOption.disabled = true;
+            branchSelect.appendChild(emptyOption);
         }
     }
     
     // Branşa göre IBAN bilgilerini göster
-    function displayBranchIban(branch) {
+    function displayBranchIban(branchId) {
         console.log('📌 displayBranchIban çağrıldı:', {
-            branch: branch,
+            branchId: branchId,
             ibanData: ibanData,
+            branchPayments: branchPayments,
             containerExists: !!document.getElementById('iban-container')
         });
         
@@ -540,24 +639,25 @@
             return;
         }
         
-        const branchPayment = ibanData && ibanData[branch];
+        // Branş bilgisini bul
+        const branch = clubBranches.find(b => b.id === branchId);
+        const branchName = branch ? branch.name : branchId;
+        const branchEmoji = branch ? branch.icon : '🏆';
         
-        // Enhanced IBAN data check (both old and new format)
-        const hasIbanData = branchPayment && (
-            (branchPayment.iban && branchPayment.name) || // new format
-            (branchPayment.iban1?.number || branchPayment.iban2?.number) // old format
-        );
+        // Ödeme bilgisini al (önce branchPayments, sonra ibanData)
+        const branchPayment = (branchPayments && branchPayments[branchId]) || (ibanData && ibanData[branchId]);
         
         console.log('📊 Ödeme Bilgisi Kontrol:', {
+            branchId: branchId,
+            branchName: branchName,
             ibanDataExists: !!ibanData,
-            windowIbanDataExists: !!window.ibanData,
-            currentIbanDataExists: !!ibanData,
-            currentIbanDataKeys: ibanData ? Object.keys(ibanData) : [],
+            branchPaymentsExists: !!branchPayments,
             branchPaymentExists: !!branchPayment,
-            branchPaymentType: typeof branchPayment,
-            branchPayment: branchPayment,
-            hasIbanData: hasIbanData
+            branchPayment: branchPayment
         });
+        
+        // Admin panelinden kaydedilen yapı: { name, iban, paymentInstructions }
+        const hasIbanData = branchPayment && (branchPayment.iban || branchPayment.name);
         
         if (!hasIbanData) {
             console.warn('⚠️ Bu branş için ödeme bilgisi bulunamadı');
@@ -567,43 +667,35 @@
         
         console.log('✅ Ödeme bilgileri gösteriliyor');
         
-        let html = `<div class="iban-info" style="display: block;">
-            <h4>🏦 ${branchPayment.branchName} - Ödeme Bilgileri</h4>`;
+        let html = `<div class="iban-info" style="display: block; padding: 20px; background: #f8f9fa; border-radius: 8px;">
+            <h4 style="color: #0066cc; margin-bottom: 15px;">${branchEmoji} ${branchName} - Ödeme Bilgileri</h4>`;
         
-        // Hesap Sahibi
-        if (branchPayment.accountHolder) {
-            html += `
-            <div class="iban-item">
-                <span><strong>Hesap Sahibi:</strong> ${branchPayment.accountHolder}</span>
-                <button type="button" class="btn-copy" onclick="copyToClipboard('${branchPayment.accountHolder}')">Kopyala</button>
-            </div>`;
-        }
-        
-        // Banka Adı
-        if (branchPayment.bankName) {
-            html += `
-            <div class="iban-item">
-                <span><strong>Banka:</strong> ${branchPayment.bankName}</span>
-                <button type="button" class="btn-copy" onclick="copyToClipboard('${branchPayment.bankName}')">Kopyala</button>
-            </div>`;
-        }
-        
+        // Hesap Sahibi / Banka Adı (admin panelinde "name" olarak kaydediliyor)
+        if (branchPayment.name) {
+                html += `
+            <div class="iban-item" style="background: white; padding: 12px; border-radius: 6px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #e0e0e0;">
+                <span><strong>Hesap Sahibi / Banka:</strong> ${branchPayment.name}</span>
+                <button type="button" class="btn-copy" onclick="copyToClipboard('${branchPayment.name}')" style="padding: 6px 12px; background: #0066cc; color: white; border: none; border-radius: 4px; cursor: pointer;">Kopyala</button>
+                </div>`;
+            }
+            
         // IBAN
         if (branchPayment.iban) {
             const ibanClean = branchPayment.iban.replace(/\s/g, '');
-            html += `
-            <div class="iban-item">
-                <span class="iban-text"><strong>IBAN:</strong> ${branchPayment.iban}</span>
-                <button type="button" class="btn-copy" onclick="copyToClipboard('${ibanClean}')">Kopyala</button>
-            </div>`;
-        }
-        
+                    html += `
+                    <div class="iban-item" style="background: white; padding: 12px; border-radius: 6px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border: 2px solid #0066cc;">
+                <span class="iban-text" style="font-family: monospace; font-weight: bold; font-size: 15px;"><strong>IBAN:</strong> ${branchPayment.iban}</span>
+                        <button type="button" class="btn-copy" onclick="copyToClipboard('${ibanClean}')" style="padding: 6px 12px; background: #0066cc; color: white; border: none; border-radius: 4px; cursor: pointer;">Kopyala</button>
+                    </div>`;
+                }
+            
         // Ödeme Talimatları
         if (branchPayment.paymentInstructions) {
-            html += `
-            <div style="margin-top: 15px; padding: 12px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;">
-                <p style="margin: 0; color: #856404; font-size: 14px; white-space: pre-wrap;">${branchPayment.paymentInstructions}</p>
-            </div>`;
+                    html += `
+            <div style="margin-top: 15px; padding: 12px; background: #e7f3ff; border-left: 3px solid #0066cc; border-radius: 4px;">
+                <strong>Ödeme Talimatları:</strong><br>
+                <span style="white-space: pre-line;">${branchPayment.paymentInstructions}</span>
+                    </div>`;
         }
         
         html += '</div>';
@@ -628,14 +720,7 @@
         
         let result = template;
         
-        // Kulüp bilgileri
-        result = result.replace(/{KULUP_ADI}/g, club.officialName || club.name || '[Doldurulacak]');
-        result = result.replace(/{YETKILI_ADI}/g, club.contactName || '[Doldurulacak]');
-        result = result.replace(/{KULUP_ADRES}/g, club.address || '[Doldurulacak]');
-        result = result.replace(/{VERGI_NO}/g, club.taxNo || '[Doldurulacak]');
-        result = result.replace(/{KULUP_TELEFON}/g, club.phone || '[Doldurulacak]');
-        result = result.replace(/{KULUP_EMAIL}/g, club.email || '[Doldurulacak]');
-        
+        // ✅ Kulüp bilgileri artık statik (placeholder değil), sadece üye bilgileri dinamik
         // Üye bilgileri
         result = result.replace(/{UYE_AD_SOYAD}/g, data.Ad_Soyad || '[Doldurulacak]');
         result = result.replace(/{UYE_TCKN}/g, data.TC_Kimlik_No || '[Doldurulacak]');
@@ -984,7 +1069,6 @@
 
     // --- PRE-REGISTRATION LOGIC ---
     async function checkPreRegistration(branch, phone) {
-        if (!window.firebase || !window.db) return false;
         const notFoundDiv = document.getElementById('pre-reg-not-found');
         
         try {
@@ -1007,37 +1091,42 @@
                 return false;
             }
             
-            let querySnapshot = null;
+            let matchingData = null;
             for (const phoneFormat of phoneFormats) {
-                const q = window.firebase.query(
-                    window.firebase.collection(window.db, 'preRegistrations'),
-                    window.firebase.where('clubId', '==', realClubId),
-                    window.firebase.where('phone', '==', phoneFormat)
-                );
-                querySnapshot = await window.firebase.getDocs(q);
-                if (!querySnapshot.empty) {
+                const { data, error } = await window.supabase
+                    .from('preRegistrations')
+                    .select('*')
+                    .eq('clubId', realClubId)
+                    .eq('phone', phoneFormat);
+                
+                if (error) {
+                    console.error('Supabase query error:', error);
+                    continue;
+                }
+                
+                if (data && data.length > 0) {
+                    matchingData = data;
                     console.log('Bulundu:', phoneFormat);
                     break;
                 }
             }
 
-            if (!querySnapshot || querySnapshot.empty) {
+            if (!matchingData || matchingData.length === 0) {
                 notFoundDiv.style.display = 'block';
                 currentPreRegistration = null;
                 return false;
             }
 
             // ✅ Tüm matching kayıtları topla (çoklu çocuk desteği için)
-            const matchingDocs = querySnapshot.docs.filter(doc => {
-                const data = doc.data();
-                return data.branch === branch && data.status === 'pending_contract';
+            const matchingRecords = matchingData.filter(record => {
+                return record.branch === branch && record.status === 'pending_contract';
             });
 
-            if (matchingDocs.length === 0) {
+            if (matchingRecords.length === 0) {
                 // Doğru branşta kayıt bulunamadı, ancak başka bir branşta kayıt var mı kontrol et
-                const otherBranchDoc = querySnapshot.docs.find(doc => doc.data().status === 'pending_contract');
-                if (otherBranchDoc) {
-                    const correctBranchName = otherBranchDoc.data().branch === 'tenis' ? 'Tenis' : 'Yüzme';
+                const otherBranchRecord = matchingData.find(record => record.status === 'pending_contract');
+                if (otherBranchRecord) {
+                    const correctBranchName = otherBranchRecord.branch === 'tenis' ? 'Tenis' : 'Yüzme';
                     const icon = correctBranchName === 'Tenis' ? '🎾' : '🏊';
                     showAlert(`Bu telefon numarası ile ${icon} ${correctBranchName} branşında bir ön kayıt bulundu. Lütfen doğru branşı seçerek devam edin.`, 'danger', 'step-1');
                 } else {
@@ -1050,7 +1139,7 @@
             }
             
             // Force refresh - always get latest data for all registrations
-            allPreRegistrations = matchingDocs.map(doc => ({ id: doc.id, ...doc.data() }));
+            allPreRegistrations = matchingRecords;
             currentPreRegistration = allPreRegistrations[0]; // İlk kaydı ana kayıt olarak kullan
             
             // Log for debugging
@@ -1072,11 +1161,16 @@
                 // ✅ Kulüp bilgilerini yükle (PDF ve IBAN için gerekli)
                 if (!clubData) {
                     try {
-                        const clubDoc = await window.firebase.getDoc(
-                            window.firebase.doc(window.db, 'clubs', currentPreRegistration.clubId)
-                        );
-                        if (clubDoc.exists()) {
-                            clubData = { id: clubDoc.id, ...clubDoc.data() };
+                        const { data: club, error: clubError } = await window.supabase
+                            .from('clubs')
+                            .select('*')
+                            .eq('id', currentPreRegistration.clubId)
+                            .single();
+                        
+                        if (clubError) {
+                            console.error('Kulüp bilgisi yükleme hatası:', clubError);
+                        } else if (club) {
+                            clubData = club;
                             console.log('✅ Kulüp bilgileri yüklendi:', clubData.name);
                         } else {
                             console.warn('⚠️ Kulüp bilgisi bulunamadı');
@@ -1084,12 +1178,16 @@
                         
                         // ✅ IBAN ve Sözleşme şablonunu yükle (settings'den)
                         console.log('🔍 Settings yükleniyor, clubId:', currentPreRegistration.clubId);
-                        const settingsDoc = await window.firebase.getDoc(
-                            window.firebase.doc(window.db, 'settings', `club_${currentPreRegistration.clubId}`)
-                        );
-                        console.log('📄 Settings doc exists:', settingsDoc.exists());
-                        if (settingsDoc.exists()) {
-                            const settings = settingsDoc.data();
+                        const { data: settings, error: settingsError } = await window.supabase
+                            .from('settings')
+                            .select('*')
+                            .eq('id', `club_${currentPreRegistration.clubId}`)
+                            .single();
+                        
+                        console.log('📄 Settings exists:', !!settings);
+                        if (settingsError && settingsError.code !== 'PGRST116') {
+                            console.error('Settings yükleme hatası:', settingsError);
+                        } else if (settings) {
                             console.log('⚙️ Settings verisi:', settings);
                             if (settings.iban) {
                                 ibanData = settings.iban;
@@ -1173,6 +1271,9 @@
                 const studentDiv = document.createElement('div');
                 studentDiv.className = 'form-grid';
                 studentDiv.style.cssText = 'background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 10px;';
+                // ✅ Tarihi yyyy-MM-dd formatına çevir
+                const formattedBirthDate = reg.studentBirthDate ? reg.studentBirthDate.split('T')[0] : '';
+                
                 studentDiv.innerHTML = `
                     <div class="form-group">
                         <label>Öğrenci ${index + 1} Adı Soyadı *</label>
@@ -1180,7 +1281,7 @@
                     </div>
                     <div class="form-group">
                         <label>Doğum Tarihi *</label>
-                        <input type="date" class="form-control student-birthdate-field" value="${reg.studentBirthDate || ''}" min="1900-01-01" max="" required data-student-name="${reg.studentName}">
+                        <input type="date" class="form-control student-birthdate-field" value="${formattedBirthDate}" min="1900-01-01" max="" required data-student-name="${reg.studentName}">
                     </div>
                 `;
                 studentsList.appendChild(studentDiv);
@@ -1271,13 +1372,18 @@
                 currentPreRegistration.phone2 = phone2;
             }
             
-            // Firebase'e kaydet
+            // Supabase'e kaydet
             if (Object.keys(updateData).length > 0) {
-                await window.firebase.updateDoc(
-                    window.firebase.doc(window.db, 'preRegistrations', currentPreRegistration.id),
-                    updateData
-                );
-                console.log('✅ Form bilgileri güncellendi:', updateData);
+                const { error } = await window.supabase
+                    .from('preRegistrations')
+                    .update(updateData)
+                    .eq('id', currentPreRegistration.id);
+                
+                if (error) {
+                    console.error('Update error:', error);
+                } else {
+                    console.log('✅ Form bilgileri güncellendi:', updateData);
+                }
             }
         } catch (error) {
             console.error('❌ Form bilgileri güncelleme hatası:', error);
@@ -1293,13 +1399,18 @@
                     if (oldBirthDate !== field.value) {
                         allPreRegistrations[index].studentBirthDate = field.value;
                         
-                        // Firebase'e kaydet
+                        // Supabase'e kaydet
                         try {
-                            await window.firebase.updateDoc(
-                                window.firebase.doc(window.db, 'preRegistrations', allPreRegistrations[index].id),
-                                { studentBirthDate: field.value }
-                            );
-                            console.log(`✅ Öğrenci ${index + 1} doğum tarihi güncellendi:`, field.value);
+                            const { error } = await window.supabase
+                                .from('preRegistrations')
+                                .update({ studentBirthDate: field.value })
+                                .eq('id', allPreRegistrations[index].id);
+                            
+                            if (error) {
+                                console.error(`❌ Öğrenci ${index + 1} doğum tarihi güncelleme hatası:`, error);
+                            } else {
+                                console.log(`✅ Öğrenci ${index + 1} doğum tarihi güncellendi:`, field.value);
+                            }
                         } catch (error) {
                             console.error(`❌ Öğrenci ${index + 1} doğum tarihi güncelleme hatası:`, error);
                         }
@@ -1362,10 +1473,44 @@
                 studentsHTML += '</div>';
             }
             
-            // Template'deki sadece üye/veli değişkenlerini değiştir
-            // ✅ Kulüp bilgileri için değişken kullanma - direkt metin olarak yazılsın
+            // ✅ Aidat takvimini HTML'e çevir
+            let aidatHTML = '';
+            if (currentPreRegistration && currentPreRegistration.paymentSchedule && currentPreRegistration.paymentSchedule.length > 0) {
+                aidatHTML = '<table style="width: 100%; border-collapse: collapse; margin: 15px 0;"><thead><tr><th style="border: 1px solid #ddd; padding: 8px; background: #f2f2f2;">Aidat No</th><th style="border: 1px solid #ddd; padding: 8px; background: #f2f2f2;">Dönem</th><th style="border: 1px solid #ddd; padding: 8px; background: #f2f2f2;">Ders Sayısı</th><th style="border: 1px solid #ddd; padding: 8px; background: #f2f2f2;">Son Ödeme</th><th style="border: 1px solid #ddd; padding: 8px; background: #f2f2f2;">Tutar</th></tr></thead><tbody>';
+                currentPreRegistration.paymentSchedule.forEach(p => {
+                    const formatDate = (dateStr) => {
+                        if (!dateStr) return '';
+                        const date = new Date(dateStr);
+                        return date.toLocaleDateString('tr-TR');
+                    };
+                    aidatHTML += `<tr>
+                        <td style="border: 1px solid #ddd; padding: 8px;">${p.paymentNumber}. Aidat</td>
+                        <td style="border: 1px solid #ddd; padding: 8px;">${formatDate(p.period.start)} - ${formatDate(p.period.end)}</td>
+                        <td style="border: 1px solid #ddd; padding: 8px;">${p.period.lessonCount || '-'} Ders</td>
+                        <td style="border: 1px solid #ddd; padding: 8px;">${formatDate(p.dueDate)}</td>
+                        <td style="border: 1px solid #ddd; padding: 8px;"><strong>${p.amount}₺</strong></td>
+                    </tr>`;
+                });
+                aidatHTML += '</tbody></table>';
+            }
+            
+            // Branş bilgisini bul
+            const branchId = currentPreRegistration.branch;
+            const branch = clubBranches.find(b => b.id === branchId);
+            const branchName = branch ? branch.name : (branchId || '');
+            
+            // Template'deki tüm placeholder'ları değiştir
             contractHTML = window.contractTemplate
-                // Üye bilgileri
+                // ✅ Kulüp bilgileri (tüm varyantlar destekleniyor)
+                .replace(/\{KULUP_ADI\}/g, clubData ? (clubData.officialName || clubData.name) : '')
+                .replace(/\{YETKILI_ADI\}/g, clubData ? clubData.contactName : '')
+                .replace(/\{KULUP_YETKILI\}/g, clubData ? clubData.contactName : '')
+                .replace(/\{KULUP_ADRES\}/g, clubData ? clubData.address : '')
+                .replace(/\{VERGI_NO\}/g, clubData ? clubData.taxNo : '')
+                .replace(/\{KULUP_VERGI_NO\}/g, clubData ? clubData.taxNo : '')
+                .replace(/\{KULUP_TELEFON\}/g, clubData ? clubData.phone : '')
+                .replace(/\{KULUP_EMAIL\}/g, clubData ? clubData.email : '')
+                // ✅ Üye bilgileri
                 .replace(/\{Ad_Soyad\}/g, contractData.Ad_Soyad || '')
                 .replace(/\{UYE_AD_SOYAD\}/g, contractData.Ad_Soyad || '')
                 .replace(/\{TC_Kimlik_No\}/g, contractData.TC_Kimlik_No || '')
@@ -1378,15 +1523,32 @@
                 .replace(/\{UYE_DOGUM_TARIHI\}/g, contractData.Dogum_Tarihi ? new Date(contractData.Dogum_Tarihi).toLocaleDateString('tr-TR') : '')
                 .replace(/\{Veli_2_Adi_Soyadi\}/g, contractData.Veli_2_Adi_Soyadi || '')
                 .replace(/\{Telefon_2\}/g, contractData.Telefon_2 || '')
-                .replace(/\{Ogrenci_Bilgileri\}/g, studentsHTML);
+                // ✅ Öğrenci bilgileri (her iki format)
+                .replace(/\{Ogrenci_Bilgileri\}/g, studentsHTML)
+                .replace(/\{OGRENCI_BILGILERI\}/g, studentsHTML)
+                .replace(/\{ogrenci_bilgileri\}/g, studentsHTML)
+                // ✅ Branş ve tarih bilgileri
+                .replace(/\{BRANS\}/g, branchName)
+                .replace(/\{TARIH\}/g, new Date().toLocaleDateString('tr-TR'))
+                // ✅ Aidat takvimi
+                .replace(/\{AIDAT_TAKVIMI\}/g, aidatHTML)
+                .replace(/\{aidat_takvimi\}/g, aidatHTML);
         } else {
-            console.log('📄 Varsayılan sözleşme şablonu kullanılıyor');
-            const contractSections = getContractSections(clubData, contractData, currentPreRegistration.paymentSchedule);
-            contractHTML = contractSections.join('<hr style="margin: 20px 0;">');
-            console.log('📄 Sözleşme metni oluşturuldu, bölüm sayısı:', contractSections.length);
+            // ❌ Admin panelinde sözleşme şablonu tanımlanmamış
+            console.error('❌ Sözleşme şablonu bulunamadı! Admin panelinden sözleşme şablonu oluşturun.');
+            contractHTML = `
+                <div style="padding: 40px; text-align: center; background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px;">
+                    <h3 style="color: #856404; margin-bottom: 20px;">⚠️ Sözleşme Şablonu Bulunamadı</h3>
+                    <p style="color: #856404; margin-bottom: 15px;">Kulübünüz için henüz bir sözleşme şablonu oluşturulmamış.</p>
+                    <p style="color: #856404;">Lütfen admin panelinden <strong>Ayarlar → Sözleşme Şablonu</strong> bölümünden sözleşme şablonunu oluşturun ve etkinleştirin.</p>
+                </div>
+            `;
         }
         
-        document.getElementById('contractTextArea').innerHTML = contractHTML;
+        // ✅ Satır sonlarını ve boşlukları koru
+        const contractArea = document.getElementById('contractTextArea');
+        contractArea.innerHTML = contractHTML;
+        contractArea.style.whiteSpace = 'pre-wrap'; // Satır sonlarını ve boşlukları koru
     }
 
     let currentPaymentPageIndex = 0; // Global sayfa indexi
@@ -1505,27 +1667,22 @@
             btn.disabled = true;
             btn.innerHTML = '🔄 Yükleniyor...';
             
-            // Fetch latest data from Firestore
-            const docRef = window.firebase.doc(window.db, 'preRegistrations', currentPreRegistration.id);
-            const docSnap = await window.firebase.getDocs(
-                window.firebase.query(
-                    window.firebase.collection(window.db, 'preRegistrations'),
-                    window.firebase.where('__name__', '==', currentPreRegistration.id)
-                )
-            );
+            // Fetch latest data from Supabase
+            const { data: preReg, error } = await window.supabase
+                .from('preRegistrations')
+                .select('*')
+                .eq('id', currentPreRegistration.id)
+                .single();
             
-            if (docSnap.empty) {
+            if (error || !preReg) {
                 showAlert('Kayıt bulunamadı!', 'danger', 'step-2');
                 btn.disabled = false;
                 btn.innerHTML = '🔄 Güncelle';
                 return;
             }
             
-            const latestDoc = docSnap.docs[0];
-            const latestData = latestDoc.data();
-            
             // Update current data
-            currentPreRegistration = { id: latestDoc.id, ...latestData };
+            currentPreRegistration = preReg;
             
             // Regenerate payment plan HTML
             document.getElementById('paymentPlanContainer').innerHTML = generatePaymentPlanHtml(currentPreRegistration);
@@ -1556,28 +1713,29 @@
     const canvas = document.getElementById('signatureCanvas');
     const ctx = canvas.getContext('2d');
     let hasSignature = false;
-    function resizeCanvas(){const p=canvas.parentElement;canvas.width=Math.min(400,p.clientWidth-60);canvas.height=200;ctx.strokeStyle="#343a40";ctx.lineWidth=2;ctx.lineCap="round"}window.addEventListener("resize",resizeCanvas);resizeCanvas();let isDrawing=!1;const getCoords=e=>{const t=canvas.getBoundingClientRect(),a=e.touches?e.touches[0]:null;return{x:(a?a.clientX:e.clientX)-t.left,y:(a?a.clientY:e.clientY)-t.top}},startDrawing=e=>{e.preventDefault(),isDrawing=!0,hasSignature=!0;const{x:t,y:a}=getCoords(e);ctx.beginPath(),ctx.moveTo(t,a)},draw=e=>{if(!isDrawing)return;e.preventDefault();const{x:t,y:a}=getCoords(e);ctx.lineTo(t,a),ctx.stroke()},stopDrawing=()=>{isDrawing=!1};canvas.addEventListener("mousedown",startDrawing),canvas.addEventListener("mousemove",draw),canvas.addEventListener("mouseup",stopDrawing),canvas.addEventListener("mouseout",stopDrawing),canvas.addEventListener("touchstart",startDrawing),canvas.addEventListener("touchmove",draw),canvas.addEventListener("touchend",stopDrawing);function clearSignature(){ctx.clearRect(0,0,canvas.width,canvas.height),hasSignature=!1}
+    function resizeCanvas(){const p=canvas.parentElement;canvas.width=Math.min(400,p.clientWidth-60);canvas.height=200;ctx.strokeStyle="#343a40";ctx.lineWidth=2;ctx.lineCap="round"}window.addEventListener("resize",resizeCanvas);resizeCanvas();let isDrawing=!1;const getCoords=e=>{const t=canvas.getBoundingClientRect(),a=e.touches?e.touches[0]:null;return{x:(a?a.clientX:e.clientX)-t.left,y:(a?a.clientY:e.clientY)-t.top}},startDrawing=e=>{e.preventDefault(),isDrawing=!0,hasSignature=!0;const{x:t,y:a}=getCoords(e);ctx.beginPath(),ctx.moveTo(t,a)},draw=e=>{if(!isDrawing)return;e.preventDefault();const{x:t,y:a}=getCoords(e);ctx.lineTo(t,a),ctx.stroke()},stopDrawing=()=>{isDrawing=!1};canvas.addEventListener("mousedown",startDrawing),canvas.addEventListener("mousemove",draw),canvas.addEventListener("mouseup",stopDrawing),canvas.addEventListener("mouseout",stopDrawing),canvas.addEventListener("touchstart",startDrawing,{passive:false}),canvas.addEventListener("touchmove",draw,{passive:false}),canvas.addEventListener("touchend",stopDrawing);function clearSignature(){ctx.clearRect(0,0,canvas.width,canvas.height),hasSignature=!1}
     
     // --- LOAD WEBHOOKS ---
     async function loadActiveWebhooks(clubId) {
         try {
             // Load contract-specific webhook
-            const webhookDoc = await window.firebase.getDoc(
-                window.firebase.doc(window.db, 'webhooks', `contract_${clubId}`)
-            );
+            const { data: webhook, error } = await window.supabase
+                .from('webhooks')
+                .select('*')
+                .eq('id', `contract_${clubId}`)
+                .single();
             
             activeWebhooks = [];
             
-            if (webhookDoc.exists()) {
-                const webhook = webhookDoc.data();
-                if (webhook.active && webhook.url) {
-                    activeWebhooks.push({
-                        id: webhookDoc.id,
-                        name: 'Contract Webhook',
-                        url: webhook.url,
-                        eventType: webhook.eventType
-                    });
-                }
+            if (error && error.code !== 'PGRST116') {
+                console.error('Webhook query error:', error);
+            } else if (webhook && webhook.active && webhook.url) {
+                activeWebhooks.push({
+                    id: webhook.id,
+                    name: 'Contract Webhook',
+                    url: webhook.url,
+                    eventType: webhook.eventType
+                });
             }
             
             console.log(`✅ ${activeWebhooks.length} aktif sözleşme webhook'u yüklendi`);
@@ -1707,16 +1865,18 @@
             console.log('🔄 Tüm üye kayıtları aktif yapılıyor...', allPreRegistrations.length, 'kayıt');
             
             for (const preReg of allPreRegistrations) {
-                const memberQuery = window.firebase.query(
-                    window.firebase.collection(window.db, 'members'),
-                    window.firebase.where('preRegistrationId', '==', preReg.id)
-                );
-                const querySnapshot = await window.firebase.getDocs(memberQuery);
+                const { data: members, error } = await window.supabase
+                    .from('members')
+                    .select('*')
+                    .eq('preRegistrationId', preReg.id);
                 
-                if (!querySnapshot.empty) {
-                    // ✅ Supabase için doc referansı oluştur
-                    const memberDoc = querySnapshot.docs[0];
-                    const memberDocRef = window.firebase.doc(window.db, 'members', memberDoc.id);
+                if (error) {
+                    console.error('Member query error:', error);
+                    continue;
+                }
+                
+                if (members && members.length > 0) {
+                    const member = members[0];
                     
                     const updateData = { 
                         status: 'active',
@@ -1735,8 +1895,16 @@
                         updateData.studentBirthDate = preReg.studentBirthDate;
                     }
 
-                    await window.firebase.updateDoc(memberDocRef, updateData);
-                    console.log('✅ Üye aktif yapıldı:', preReg.studentName || preReg.parentName);
+                    const { error: updateError } = await window.supabase
+                        .from('members')
+                        .update(updateData)
+                        .eq('id', member.id);
+                    
+                    if (updateError) {
+                        console.error('Member update error:', updateError);
+                    } else {
+                        console.log('✅ Üye aktif yapıldı:', preReg.studentName || preReg.parentName);
+                    }
                 } else {
                     console.warn('⚠️ Üye kaydı bulunamadı:', preReg.id);
                 }
@@ -1744,10 +1912,14 @@
 
             // 2. Update Pre-registration Status (Fast and critical) - TÜM kayıtları güncelle
             for (const preReg of allPreRegistrations) {
-                await window.firebase.updateDoc(
-                    window.firebase.doc(window.db, 'preRegistrations', preReg.id),
-                    { status: 'completed', completedAt: new Date().toISOString() }
-                );
+                const { error } = await window.supabase
+                    .from('preRegistrations')
+                    .update({ status: 'completed', completedAt: new Date().toISOString() })
+                    .eq('id', preReg.id);
+                
+                if (error) {
+                    console.error('PreRegistration update error:', error);
+                }
             }
             
             // 3. Show Success screen immediately with branch-specific IBAN
@@ -1773,40 +1945,229 @@
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF({ unit: 'pt', format: 'a4' });
             
-            // Her zaman varsayılan template'i kullan (getContractSections)
-            const contractParts = getContractSections(clubData, data, currentPreRegistration.paymentSchedule);
-            console.log('📄 PDF oluşturuluyor, bölüm sayısı:', contractParts.length);
+            // ✅ Admin panelinden yüklenen sözleşme şablonunu kullan
+            if (!window.contractTemplate) {
+                throw new Error('Sözleşme şablonu bulunamadı! Lütfen admin panelinden sözleşme şablonu oluşturun.');
+            }
             
-            // Her bölümü ayrı sayfa olarak render et
-            for (let i = 0; i < contractParts.length; i++) {
+            // Sözleşme HTML'ini hazırla (ekranda görünen sözleşmeyi kullan)
+            const contractHTML = document.getElementById('contractTextArea').innerHTML;
+            console.log('📄 PDF oluşturuluyor, admin template kullanılıyor');
+            
+            // İmza resmini al
+            const signatureCanvas = document.getElementById('signatureCanvas');
+            const signatureDataUrl = signatureCanvas.toDataURL('image/png');
+            
+            // Kulüp adını al
+            const headerTitle = clubData?.officialName || clubData?.name || 'Spor Kulübü';
+            
+            // HTML içeriğini <hr> etiketlerine göre sayfalara böl
+            let pages = [];
+            if (/<hr\s*\/?>/gi.test(contractHTML)) {
+                pages = contractHTML.split(/<hr\s*\/?>/gi);
+                console.log(`📄 ${pages.length} sayfa tespit edildi (<hr> ile bölünmüş)`);
+            } else {
+                pages = [contractHTML];
+                console.log(`📄 1 sayfa tespit edildi (<hr> yok, tek sayfa)`);
+            }
+            
+            // Boş sayfaları filtrele
+            pages = pages.filter(page => page.trim().length > 0);
+            console.log(`📄 ${pages.length} sayfa render edilecek`);
+            
+            // Her sayfa için
+            for (let i = 0; i < pages.length; i++) {
                 if (i > 0) {
                     doc.addPage();
                 }
                 
-                const pageHtml = generatePageHtml(data, contractParts[i], i + 1, contractParts.length);
+                // Sayfa içeriğini hazırla (imza ile birlikte)
+                const pageHTML = `
+                    <!DOCTYPE html>
+                    <html lang="tr">
+                    <head>
+                        <meta charset="UTF-8">
+                        <style>
+                            body { 
+                                font-family: 'Helvetica', 'Arial', sans-serif; 
+                                font-size: 10px; 
+                                line-height: 1.4; 
+                                color: #333; 
+                                width: 595px;
+                                margin: 0;
+                                padding: 0;
+                            }
+                            .pdf-page { 
+                                padding: 40px; 
+                                display: flex; 
+                                flex-direction: column; 
+                                height: 842px; 
+                                box-sizing: border-box; 
+                                background: white;
+                            }
+                            h1 { 
+                                font-size: 18px; 
+                                text-align: center; 
+                                margin-bottom: 15px;
+                                color: #333;
+                            } 
+                            h4 { 
+                                font-size: 13px; 
+                                margin-top: 15px; 
+                                margin-bottom: 8px;
+                                color: #000;
+                                font-weight: bold;
+                            }
+                            p {
+                                margin: 5px 0;
+                                text-align: justify;
+                                white-space: normal;
+                                word-wrap: break-word;
+                                overflow-wrap: break-word;
+                            }
+                            strong {
+                                font-weight: bold;
+                            }
+                            table {
+                                width: 100%;
+                                border-collapse: collapse;
+                                margin: 10px 0;
+                                font-size: 9px;
+                            }
+                            th, td {
+                                border: 1px solid #ddd;
+                                padding: 5px;
+                                text-align: left;
+                            }
+                            th {
+                                background-color: #f2f2f2;
+                                font-weight: bold;
+                            }
+                            .content { 
+                                flex-grow: 1;
+                                overflow: hidden;
+                                white-space: normal;
+                                word-wrap: break-word;
+                            }
+                            .footer { 
+                                text-align: center; 
+                                font-size: 9px; 
+                                color: #888; 
+                                border-top: 1px solid #ccc; 
+                                padding-top: 10px; 
+                                margin-top: auto; 
+                                display: flex; 
+                                justify-content: space-between; 
+                                align-items: flex-end;
+                                flex-shrink: 0;
+                            }
+                            .signature-box { 
+                                border: 2px solid #333;
+                                border-radius: 8px;
+                                padding: 12px;
+                                background: #f9f9f9;
+                                display: flex;
+                                align-items: center;
+                                gap: 15px;
+                            }
+                            .signature-area {
+                                display: flex;
+                                flex-direction: column;
+                                align-items: center;
+                            }
+                            .signature-img {
+                                width: 150px;
+                                height: 60px;
+                                border: 2px solid #666;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                background: white;
+                                border-radius: 4px;
+                            }
+                            .signature-info {
+                                text-align: left;
+                                border-left: 2px solid #ccc;
+                                padding-left: 15px;
+                            }
+                            .signature-info p { 
+                                margin: 3px 0; 
+                                font-size: 9px;
+                                color: #333;
+                            }
+                            .signature-info strong {
+                                font-size: 10px;
+                                color: #000;
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="pdf-page">
+                            <h1>${headerTitle} Üyelik Sözleşmesi</h1>
+                            <div class="content">${pages[i]}</div>
+                            <div class="footer">
+                                <div class="signature-box">
+                                    <div class="signature-area">
+                                        <p style="margin-bottom: 5px; font-size: 10px;"><strong>İMZA</strong></p>
+                                        <div class="signature-img">
+                                            <img src="${signatureDataUrl}" style="max-width: 140px; max-height: 50px;">
+                                        </div>
+                                    </div>
+                                    <div class="signature-info">
+                                        <p><strong>Üye/Veli:</strong> ${data.Ad_Soyad || 'Üye Adı'}</p>
+                                        <p><strong>Tarih:</strong> ${new Date().toLocaleDateString('tr-TR', {
+                                            year: 'numeric',
+                                            month: '2-digit',
+                                            day: '2-digit'
+                                        })}</p>
+                                        <p><strong>Saat:</strong> ${new Date().toLocaleTimeString('tr-TR', {
+                                            hour: '2-digit',
+                                            minute: '2-digit',
+                                            second: '2-digit'
+                                        })}</p>
+                                    </div>
+                                </div>
+                                <div style="align-self: flex-end; font-size: 9px; color: #666;">Sayfa ${i + 1} / ${pages.length}</div>
+                            </div>
+                        </div>
+                    </body>
+                    </html>
+                `;
+                
+                // Geçici container oluştur
                 const tempContainer = document.createElement('div');
                 tempContainer.style.position = 'absolute';
                 tempContainer.style.left = '-9999px';
-                tempContainer.style.width = '595px'; // A4 width in points
-                tempContainer.innerHTML = pageHtml;
+                tempContainer.style.width = '595px';
+                tempContainer.style.height = '842px';
+                tempContainer.style.background = 'white';
+                tempContainer.innerHTML = pageHTML;
                 document.body.appendChild(tempContainer);
                 
-                const pageCanvas = await html2canvas(tempContainer, { 
+                console.log(`📄 Sayfa ${i + 1}/${pages.length} render ediliyor...`);
+                
+                // HTML'i canvas'a çevir
+                const canvas = await html2canvas(tempContainer, { 
                     scale: 2, 
                     logging: false, 
-                    useCORS: true
+                    useCORS: true,
+                    backgroundColor: '#ffffff',
+                    width: 595,
+                    height: 842,
+                    windowWidth: 595,
+                    windowHeight: 842
                 });
                 document.body.removeChild(tempContainer);
                 
-                const imgData = pageCanvas.toDataURL('image/jpeg', 0.9);
-                const imgProps = doc.getImageProperties(imgData);
+                // Canvas'ı PDF'e ekle - Tam sayfa boyutunda
+                const imgData = canvas.toDataURL('image/jpeg', 0.9);
                 const pdfWidth = doc.internal.pageSize.getWidth();
-                const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+                const pdfHeight = doc.internal.pageSize.getHeight();
                 
                 doc.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
             }
             
-            console.log('✅ PDF başarıyla oluşturuldu:', contractParts.length, 'sayfa');
+            console.log('✅ PDF başarıyla oluşturuldu:', pages.length, 'sayfa');
             return doc;
         } catch (error) {
             console.error('❌ PDF oluşturma hatası:', error);
@@ -2048,3 +2409,5 @@
 </script>
 </body>
 </html>
+
+

@@ -1959,10 +1959,6 @@
             <div class="p-6 space-y-8">
                 <!-- WhatsApp Section -->
                 <div class="bg-white rounded-lg shadow-md p-6">
-                    <h3 class="text-xl font-semibold text-gray-800 mb-6 flex items-center">
-                        <i class="fab fa-whatsapp text-green-500 mr-3"></i> WhatsApp Mesajlaşma Merkezi
-                    </h3>
-
                     <!-- Tabs for different sections -->
                     <div class="flex space-x-1 mb-6 bg-gray-100 p-1 rounded-lg">
                         <button class="whatsapp-tab active px-4 py-2 rounded-md text-sm font-medium transition-colors" onclick="switchWhatsAppTab('messages')">
@@ -1995,7 +1991,12 @@
                             <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 h-96">
                                 <!-- Contacts List -->
                                 <div class="border border-gray-200 rounded-lg p-4 overflow-y-auto">
-                                    <h4 class="font-semibold text-gray-800 mb-3">💬 Konuşmalar</h4>
+                                    <div class="flex justify-between items-center mb-3">
+                                        <h4 class="font-semibold text-gray-800">💬 Konuşmalar</h4>
+                                        <button onclick="openNewMessageModal()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm">
+                                            ✉️ Yeni Mesaj
+                                        </button>
+                                    </div>
                                     <input type="text" id="contact-search" class="w-full border border-gray-300 rounded-md px-3 py-2 mb-3" placeholder="🔍 Kişi ara...">
                                     <div id="whatsapp-contacts-list">
                                         <p class="text-gray-500 text-sm">Yükleniyor...</p>
@@ -2394,6 +2395,111 @@
             updateCampaignReportsTable(state.collections.campaigns);
             updateCampaignReportsStats(state.collections.campaigns);
         }
+    }
+
+    // Yeni mesaj modal penceresi
+    window.openNewMessageModal = function() {
+        const activeDevice = document.getElementById('whatsapp-active-device')?.value;
+        if (!activeDevice) {
+            showToast('⚠️ Önce bir WhatsApp cihazı seçin!', true);
+            return;
+        }
+
+        ModalManager.show({
+            title: '✉️ Yeni Mesaj Gönder',
+            content: `
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Telefon Numarası *</label>
+                        <input type="tel" id="new-message-phone" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="905xxxxxxxxx" required>
+                        <small class="text-gray-600">Örnek: 905449367543 (90 ile başlamalı)</small>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Mesaj *</label>
+                        <textarea id="new-message-text" class="w-full border border-gray-300 rounded-md px-3 py-2" rows="4" placeholder="Mesajınızı yazın..." required></textarea>
+                    </div>
+                </div>
+            `,
+            confirmText: '📤 Gönder',
+            cancelText: 'İptal',
+            onConfirm: async () => {
+                const phone = document.getElementById('new-message-phone').value.trim();
+                const messageText = document.getElementById('new-message-text').value.trim();
+                
+                if (!phone || !messageText) {
+                    showToast('⚠️ Lütfen tüm alanları doldurun!', true);
+                    return false; // Modal'ı kapatma
+                }
+
+                // Numara formatını kontrol et
+                if (!/^90\d{10}$/.test(phone)) {
+                    showToast('⚠️ Geçersiz telefon numarası formatı! (90 ile başlamalı)', true);
+                    return false;
+                }
+
+                try {
+                    // Önce bu numarayla konuşma var mı kontrol et
+                    const existingContact = window.currentWhatsAppContacts?.find(c => c.phone === phone);
+                    
+                    if (existingContact) {
+                        // Konuşma varsa, o konuşmayı aç
+                        await window.loadMessagesForContact(existingContact);
+                        showToast('✅ Mevcut konuşma açıldı', false);
+                        
+                        // Mesajı input'a yaz (kullanıcı manuel gönderecek)
+                        const messageInput = document.getElementById('whatsapp-message-text');
+                        if (messageInput) {
+                            messageInput.value = messageText;
+                            messageInput.focus();
+                        }
+                    } else {
+                        // Yeni konuşma aç ve mesajı gönder
+                        await sendNewWhatsAppMessage(activeDevice, phone, messageText);
+                    }
+                    
+                    return true; // Modal'ı kapat
+                } catch (error) {
+                    console.error('Mesaj gönderme hatası:', error);
+                    showToast('❌ Mesaj gönderilemedi: ' + error.message, true);
+                    return false;
+                }
+            }
+        });
+    };
+
+    // Yeni konuşma için mesaj gönderme
+    async function sendNewWhatsAppMessage(deviceId, phone, message) {
+        const device = state.collections.settings.devices?.find(d => d.id === deviceId);
+        if (!device) {
+            throw new Error('Cihaz bulunamadı');
+        }
+
+        const endpoint = `${device.apiUrl}/sendMessage`;
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${device.apiKey}` },
+            body: JSON.stringify({ phone: phone, message: message })
+        });
+
+        if (!response.ok) {
+            throw new Error('Mesaj gönderilemedi');
+        }
+
+        const result = await response.json();
+        showToast('✅ Mesaj gönderildi!', false);
+
+        // Konuşmalar listesini yenile
+        if (window.loadContactsList) {
+            await window.loadContactsList();
+        }
+
+        // Yeni konuşmayı aç
+        const newContact = { phone: phone, name: phone, lastMessage: message };
+        if (window.loadMessagesForContact) {
+            await window.loadMessagesForContact(newContact);
+        }
+
+        return result;
     }
 
     function loadSentMessagesLog() {

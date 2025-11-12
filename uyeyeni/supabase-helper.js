@@ -144,9 +144,9 @@ const db = {
             .from(docRef.tableName)
             .select('*')
             .eq('id', docRef.id)
-            .single();
+            .maybeSingle(); // maybeSingle() kayıt yoksa null döner ve hata vermez
         
-        if (error && error.code !== 'PGRST116') throw error; // PGRST116 = not found
+        if (error) throw error;
         
         return {
             id: docRef.id,
@@ -174,7 +174,7 @@ const db = {
             .from(collectionRef.tableName)
             .insert([data])
             .select()
-            .single();
+            .maybeSingle();
         
         if (error) throw error;
         
@@ -194,7 +194,7 @@ const db = {
             .update(data)
             .eq('id', docRef.id)
             .select()
-            .single();
+            .maybeSingle();
         
         if (error) throw error;
         
@@ -217,13 +217,20 @@ const db = {
         // const convertedData = convertToSnakeCase(data);
         data.id = docRef.id;
         
+        console.log('🔄 setDoc called:', { tableName: docRef.tableName, id: docRef.id, dataKeys: Object.keys(data) });
+        
         const { data: result, error } = await supabaseClient
             .from(docRef.tableName)
-            .upsert([data])
+            .upsert([data], { onConflict: 'id' })
             .select()
-            .single();
+            .maybeSingle();
         
-        if (error) throw error;
+        if (error) {
+            console.error('❌ setDoc error:', error);
+            throw error;
+        }
+        
+        console.log('✅ setDoc success:', { tableName: docRef.tableName, id: docRef.id });
         
         return result;
     },
@@ -444,9 +451,15 @@ function setCurrentClubId(clubId) {
     currentClubId = clubId;
 }
 
+// Get Supabase client
+function getSupabaseClient() {
+    return supabaseClient;
+}
+
 // Export for use in HTML files
 window.supabaseHelper = {
     initSupabase,
+    getSupabaseClient,
     auth,
     db,
     where,
