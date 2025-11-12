@@ -4374,8 +4374,10 @@ Görev detaylarını kontrol ediniz.</textarea>
                     </div>
                 `;
                 
+                console.log('✅ Page HTML rendered successfully! Container has content:', container.innerHTML.length, 'chars');
+                
             } catch (error) {
-                console.error('Error loading WhatsApp balance page:', error);
+                console.error('❌ Error loading WhatsApp balance page:', error);
                 
                 // Check if tables don't exist
                 const isTableMissing = error.message.includes('relation') || 
