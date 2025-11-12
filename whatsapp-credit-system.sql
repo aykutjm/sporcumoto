@@ -1,14 +1,21 @@
 -- WhatsApp Mesaj Hakkı Sistemi - Veritabanı Yapısı
 -- Kullanım: Bu SQL dosyasını Supabase SQL Editor'de çalıştırın
+-- NOT: clubs tablosu Firebase'den geliyor, bu yüzden basit bir clubs reference tablosu oluşturuyoruz
 
--- 1. clubs tablosuna whatsapp_balance kolonu ekle
-ALTER TABLE clubs 
-ADD COLUMN IF NOT EXISTS whatsapp_balance INTEGER DEFAULT 0;
+-- 1. clubs reference tablosu (Firebase club ID'leri için)
+CREATE TABLE IF NOT EXISTS clubs (
+    id TEXT PRIMARY KEY,  -- Firebase club ID (örn: FmvoFvTCek44CR3pS4XC)
+    name TEXT,
+    whatsapp_balance INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
 
--- Mevcut kulüplere başlangıç bakiyesi ver (opsiyonel)
-UPDATE clubs 
-SET whatsapp_balance = 100 
-WHERE whatsapp_balance = 0 OR whatsapp_balance IS NULL;
+-- Mevcut kulübü ekle (örnek - kendi club ID'nizi buraya yazın)
+INSERT INTO clubs (id, name, whatsapp_balance) VALUES
+('FmvoFvTCek44CR3pS4XC', 'Atakum Tenis Kulübü', 100)
+ON CONFLICT (id) DO UPDATE SET 
+    whatsapp_balance = EXCLUDED.whatsapp_balance;
 
 -- 2. WhatsApp mesaj paketleri tablosu
 CREATE TABLE IF NOT EXISTS whatsapp_packages (
@@ -25,7 +32,7 @@ CREATE TABLE IF NOT EXISTS whatsapp_packages (
 -- 3. WhatsApp bakiye işlem geçmişi tablosu
 CREATE TABLE IF NOT EXISTS whatsapp_balance_logs (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    club_id UUID NOT NULL REFERENCES clubs(id) ON DELETE CASCADE,
+    club_id TEXT NOT NULL REFERENCES clubs(id) ON DELETE CASCADE,  -- Firebase club ID
     amount INTEGER NOT NULL,
     action_type VARCHAR(20) NOT NULL CHECK (action_type IN ('add', 'purchase', 'send', 'manual_add', 'refund')),
     previous_balance INTEGER NOT NULL,
@@ -90,7 +97,7 @@ WITH CHECK (true);
 CREATE OR REPLACE VIEW club_whatsapp_stats AS
 SELECT 
     c.id as club_id,
-    c.kulup_name,
+    c.name as club_name,
     c.whatsapp_balance,
     COUNT(CASE WHEN wbl.action_type = 'send' THEN 1 END) as total_sent,
     COUNT(CASE WHEN wbl.action_type IN ('add', 'purchase', 'manual_add') THEN 1 END) as total_purchases,
@@ -98,11 +105,11 @@ SELECT
     SUM(CASE WHEN wbl.action_type = 'send' THEN ABS(wbl.amount) ELSE 0 END) as total_credits_used
 FROM clubs c
 LEFT JOIN whatsapp_balance_logs wbl ON c.id = wbl.club_id
-GROUP BY c.id, c.kulup_name, c.whatsapp_balance;
+GROUP BY c.id, c.name, c.whatsapp_balance;
 
 -- Bakiye güncelleme fonksiyonu (transaction güvenli)
 CREATE OR REPLACE FUNCTION update_whatsapp_balance(
-    p_club_id UUID,
+    p_club_id TEXT,  -- Firebase club ID (TEXT)
     p_amount INTEGER,
     p_action_type VARCHAR(20),
     p_package_id UUID DEFAULT NULL,
@@ -161,7 +168,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Mesaj gönderimi öncesi bakiye kontrolü fonksiyonu
 CREATE OR REPLACE FUNCTION check_whatsapp_balance(
-    p_club_id UUID,
+    p_club_id TEXT,  -- Firebase club ID (TEXT)
     p_message_count INTEGER DEFAULT 1
 )
 RETURNS JSON AS $$
