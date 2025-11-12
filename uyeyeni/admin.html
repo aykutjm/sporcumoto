@@ -4168,26 +4168,40 @@ Görev detaylarını kontrol ediniz.</textarea>
             
             try {
                 // Load current balance
+                console.log('📊 Fetching balance from Supabase...');
                 const { data: clubData, error: clubError } = await window.supabase
                     .from('clubs')
                     .select('whatsapp_balance')
                     .eq('id', currentClubId)
                     .single();
                 
-                if (clubError) throw clubError;
+                console.log('📊 Balance query result:', { clubData, clubError });
+                
+                if (clubError) {
+                    console.error('❌ Balance query error:', clubError);
+                    throw clubError;
+                }
                 
                 const currentBalance = clubData?.whatsapp_balance || 0;
+                console.log('💰 Current balance:', currentBalance);
                 
                 // Load available packages
+                console.log('📦 Fetching packages...');
                 const { data: packages, error: packagesError } = await window.supabase
                     .from('whatsapp_packages')
                     .select('*')
                     .eq('is_active', true)
                     .order('message_count', { ascending: true });
                 
-                if (packagesError) throw packagesError;
+                console.log('📦 Packages result:', { count: packages?.length, packagesError });
+                
+                if (packagesError) {
+                    console.error('❌ Packages error:', packagesError);
+                    throw packagesError;
+                }
                 
                 // Load recent transactions
+                console.log('📋 Fetching logs...');
                 const { data: logs, error: logsError } = await window.supabase
                     .from('whatsapp_balance_logs')
                     .select('*')
@@ -4195,7 +4209,12 @@ Görev detaylarını kontrol ediniz.</textarea>
                     .order('created_at', { ascending: false })
                     .limit(20);
                 
-                if (logsError) throw logsError;
+                console.log('📋 Logs result:', { count: logs?.length, logsError });
+                
+                if (logsError) {
+                    console.error('❌ Logs error:', logsError);
+                    throw logsError;
+                }
                 
                 // Update sidebar balance display
                 const sidebarBalance = document.getElementById('whatsapp-balance');
@@ -4203,6 +4222,7 @@ Görev detaylarını kontrol ediniz.</textarea>
                     sidebarBalance.textContent = currentBalance.toLocaleString('tr-TR');
                 }
                 
+                console.log('🎨 Rendering page HTML...');
                 // Render page
                 container.innerHTML = `
                     <!-- Current Balance Card -->
