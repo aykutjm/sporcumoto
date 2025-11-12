@@ -8891,18 +8891,33 @@ Görev detaylarını kontrol ediniz.</textarea>
                         // Update existing record
                         const { error } = await supabase
                             .from('attendanceRecords')
-                            .update(record)
+                            .update({
+                                memberId: record.memberId,
+                                groupId: record.groupId,
+                                date: record.date,
+                                status: record.status,
+                                reason: record.reason,
+                                recordedBy: record.recordedBy,
+                                clubId: record.clubId
+                            })
                             .eq('id', record.id);
                         if (error) {
                             console.error('Yoklama güncelleme hatası:', error);
                             throw error;
                         }
                     } else {
-                        // Insert new record (remove id field)
-                        const { id, ...recordWithoutId } = record;
+                        // Insert new record (only specific fields)
                         const { error } = await supabase
                             .from('attendanceRecords')
-                            .insert(recordWithoutId);
+                            .insert({
+                                memberId: record.memberId,
+                                groupId: record.groupId,
+                                date: record.date,
+                                status: record.status,
+                                reason: record.reason,
+                                recordedBy: record.recordedBy,
+                                clubId: record.clubId
+                            });
                         if (error) {
                             console.error('Yoklama ekleme hatası:', error);
                             throw error;
