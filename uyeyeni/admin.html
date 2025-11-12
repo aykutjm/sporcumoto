@@ -4376,6 +4376,15 @@ Görev detaylarını kontrol ediniz.</textarea>
                 
                 console.log('✅ Page HTML rendered successfully! Container has content:', container.innerHTML.length, 'chars');
                 
+                // Force section visibility
+                const section = document.getElementById('whatsapp-balance');
+                if (section) {
+                    section.style.display = 'block';
+                    console.log('✅ Section visibility forced to block');
+                } else {
+                    console.error('❌ Section #whatsapp-balance not found!');
+                }
+                
             } catch (error) {
                 console.error('❌ Error loading WhatsApp balance page:', error);
                 
