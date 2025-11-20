@@ -1,0 +1,27 @@
+{
+  "name": "sporcum-supabase-migration",
+  "version": "1.0.0",
+  "description": "Firebase to Supabase migration tools for Sporcum CRM",
+  "main": "index.js",
+  "scripts": {
+    "export": "node firebase-export.js",
+    "import": "node supabase-import.js",
+    "migrate": "npm run export && npm run import",
+    "auto-reply": "node auto-reply-missed-calls.js",
+    "auto-reply:watch": "nodemon auto-reply-missed-calls.js"
+  },
+  "keywords": [
+    "firebase",
+    "supabase",
+    "migration",
+    "crm"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.84.0",
+    "dotenv": "^17.2.3",
+    "firebase-admin": "^12.0.0",
+    "node-fetch": "^3.3.2"
+  }
+}

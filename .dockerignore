@@ -1,0 +1,7 @@
+# Coolify Auto-Reply Cron Deployment dosyaları
+auto-reply-missed-calls.js
+package.json
+package-lock.json
+.env
+Dockerfile
+docker-compose.yml

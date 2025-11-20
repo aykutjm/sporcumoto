@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  auto-reply-system:
+    build: .
+    container_name: sporcum-auto-reply-system
+    restart: always
+    environment:
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+    # Her 2 dakikada bir: 1) Cevapsız aramaları kontrol et, 2) Kuyruktaki mesajları gönder
+    command: sh -c "while true; do node combined-auto-reply-system.js; echo 'Sleeping for 2 minutes...'; sleep 120; done"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
