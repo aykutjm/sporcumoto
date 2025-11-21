@@ -6604,13 +6604,19 @@ Görev detaylarını kontrol ediniz.</textarea>
                         // Use remoteJid instead of id for phone number
                         const remoteJid = chat.remoteJid || chat.id;
                         
-                        if (!remoteJid || remoteJid.includes('@g.us') || remoteJid.includes('@broadcast')) {
-                            skippedGroups++;
-                            continue; // Skip groups and broadcasts
+                        // Skip groups, broadcasts, and linked devices
+                        if (!remoteJid || remoteJid.includes('@g.us') || remoteJid.includes('@broadcast') || remoteJid.includes('@lid')) {
+                            if (remoteJid.includes('@g.us') || remoteJid.includes('@broadcast')) {
+                                skippedGroups++;
+                            } else if (remoteJid.includes('@lid')) {
+                                console.log(`⚠️ Linked device atlandı: ${remoteJid}`);
+                                skippedInvalid++;
+                            }
+                            continue;
                         }
                         
                         // Extract phone number from remoteJid
-                        let phone = remoteJid.replace('@s.whatsapp.net', '').replace('@c.us', '').replace('@lid', '');
+                        let phone = remoteJid.replace('@s.whatsapp.net', '').replace('@c.us', '');
                         
                         // Check if this is a phone number (should only contain digits and optional leading +)
                         // Skip if contains letters (newsletters, special IDs, etc.)
@@ -6799,7 +6805,14 @@ Görev detaylarını kontrol ediniz.</textarea>
                             for (const msg of whatsappMessagesData) {
                                 // remote_jid'den telefon numarasını al
                                 const remoteJid = msg.remote_jid || '';
-                                const phone = formatPhoneForWhatsApp(remoteJid.replace('@s.whatsapp.net', ''));
+                                
+                                // @lid formatındaki mesajları atla (WhatsApp linked device - gerçek telefon numarası değil)
+                                if (remoteJid.includes('@lid')) {
+                                    console.log(`⚠️ Linked device mesajı atlandı: ${remoteJid}`);
+                                    continue;
+                                }
+                                
+                                const phone = formatPhoneForWhatsApp(remoteJid.replace('@s.whatsapp.net', '').replace('@c.us', ''));
                                 if (!phone) continue;
                                 
                                 // Grup mesajlarını atla
