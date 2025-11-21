@@ -6619,6 +6619,9 @@ Görev detaylarını kontrol ediniz.</textarea>
                     let skippedInvalid = 0;
                     let processedPhones = 0;
                     
+                    // ✅ Map kullanarak duplicate'leri otomatik ele al (en son mesajı tut)
+                    const contactMap = new Map();
+                    
                     // Process each chat
                     for (const chat of chats) {
                         // Use remoteJid instead of id for phone number
@@ -6777,25 +6780,44 @@ Görev detaylarını kontrol ediniz.</textarea>
                             }
                         }
                         
-                        // ✅ DUBLICATE KONTROLÜ - Aynı telefon numarası zaten varsa ekleme
-                        const existingContact = whatsappContacts.find(c => c.phone === phone);
+                        // ✅ Map'e ekle veya güncelle (aynı numaradan en son mesajı tut)
+                        const existingContact = contactMap.get(phone);
                         if (existingContact) {
-                            console.log(`⏭️ Dublicate atlandı: ${phone} (${contactName})`);
-                            continue;
+                            // Eğer bu chat'in son mesajı daha yeni ise güncelle
+                            if (lastMessageTime > existingContact.lastMessageTime) {
+                                console.log(`🔄 ${phone} güncellendi (daha yeni mesaj: ${contactName})`);
+                                contactMap.set(phone, {
+                                    name: contactName,
+                                    phone: phone,
+                                    type: type,
+                                    lastMessage: lastMessageText,
+                                    lastMessageFromMe: fromMe,
+                                    lastMessageTime: lastMessageTime,
+                                    unreadCount: actualUnreadCount,
+                                    instanceName: device.instanceName || device.name,
+                                    ...extraData
+                                });
+                            } else {
+                                console.log(`⏭️ ${phone} atlandı (daha eski mesaj: ${contactName})`);
+                            }
+                        } else {
+                            // İlk kez ekleniyor
+                            contactMap.set(phone, {
+                                name: contactName,
+                                phone: phone,
+                                type: type,
+                                lastMessage: lastMessageText,
+                                lastMessageFromMe: fromMe,
+                                lastMessageTime: lastMessageTime,
+                                unreadCount: actualUnreadCount,
+                                instanceName: device.instanceName || device.name,
+                                ...extraData
+                            });
                         }
-                        
-                        whatsappContacts.push({
-                            name: contactName,
-                            phone: phone,
-                            type: type,
-                            lastMessage: lastMessageText,
-                            lastMessageFromMe: fromMe,
-                            lastMessageTime: lastMessageTime,
-                            unreadCount: actualUnreadCount,
-                            instanceName: device.instanceName || device.name,
-                            ...extraData
-                        });
                     }
+                    
+                    // ✅ Map'i array'e çevir
+                    whatsappContacts = Array.from(contactMap.values());
                     
                     // Sort by last message time (newest first)
                     whatsappContacts.sort((a, b) => b.lastMessageTime - a.lastMessageTime);
