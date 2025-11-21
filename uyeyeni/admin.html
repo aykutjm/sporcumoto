@@ -7975,10 +7975,17 @@ Görev detaylarını kontrol ediniz.</textarea>
         // 🔥 Supabase Realtime Listeners (Multi-Tenant)
         let whatsappMessageChannel = null;
         let whatsappCallChannel = null;
+        let realtimeListenersStarted = false; // ✅ Flag to prevent multiple subscriptions
         
         function startWhatsAppRealtimeListeners() {
             if (!currentClubId) {
                 console.error('❌ Club ID bulunamadı, realtime listeners başlatılamadı');
+                return;
+            }
+            
+            // ✅ Eğer zaten başlatıldıysa tekrar başlatma
+            if (realtimeListenersStarted) {
+                console.log('⚠️ Realtime listeners zaten aktif, tekrar başlatılmadı');
                 return;
             }
             
@@ -8130,12 +8137,15 @@ Görev detaylarını kontrol ediniz.</textarea>
                     .subscribe((status) => {
                         if (status === 'SUBSCRIBED') {
                             console.log('✅ WhatsApp çağrı realtime listener aktif (Supabase)');
+                            realtimeListenersStarted = true; // ✅ Flag'i işaretle
                         }
                     });
                 
                 console.log('✅ Supabase realtime listeners aktif (Mesajlar + Çağrılar)');
             } catch (error) {
                 console.error('❌ Realtime listeners başlatılamadı:', error);
+                realtimeListenersStarted = false; // ✅ Hata durumunda flag'i sıfırla
+
             }
         }
         
