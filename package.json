@@ -1,6 +1,7 @@
 {
   "name": "sporcum-supabase-migration",
   "version": "1.0.0",
+  "type": "module",
   "description": "Firebase to Supabase migration tools for Sporcum CRM",
   "main": "index.js",
   "scripts": {
