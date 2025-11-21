@@ -6603,19 +6603,15 @@ Görev detaylarını kontrol ediniz.</textarea>
                         // Use remoteJid instead of id for phone number
                         const remoteJid = chat.remoteJid || chat.id;
                         
-                        // Skip groups, broadcasts, and linked devices
-                        if (!remoteJid || remoteJid.includes('@g.us') || remoteJid.includes('@broadcast') || remoteJid.includes('@lid')) {
-                            if (remoteJid.includes('@g.us') || remoteJid.includes('@broadcast')) {
-                                skippedGroups++;
-                            } else if (remoteJid.includes('@lid')) {
-                                // Linked device - aynı kişinin farklı cihazı, asıl numarası zaten listede
-                                skippedInvalid++;
-                            }
+                        // Skip groups and broadcasts only
+                        if (!remoteJid || remoteJid.includes('@g.us') || remoteJid.includes('@broadcast')) {
+                            skippedGroups++;
                             continue;
                         }
                         
-                        // Extract phone number from remoteJid
-                        let phone = remoteJid.replace('@s.whatsapp.net', '').replace('@c.us', '');
+                        // Extract phone number from remoteJid (including @lid)
+                        let phone = remoteJid.replace('@s.whatsapp.net', '').replace('@c.us', '').replace('@lid', '');
+                        let isLinkedDevice = remoteJid.includes('@lid');
                         
                         // Check if this is a phone number (should only contain digits and optional leading +)
                         // Skip if contains letters (newsletters, special IDs, etc.)
@@ -6671,41 +6667,45 @@ Görev detaylarını kontrol ediniz.</textarea>
                         
                         // Get contact name from Evolution API or use phone number
                         let contactName = chat.name || chat.pushName || phone;
-                        
-                        // Check if contact exists in members/CRM
-                        const member = members.find(m => {
-                            const memberPhone = formatPhoneForWhatsApp(m.Telefon || m.phone || '');
-                            const memberPhone2 = formatPhoneForWhatsApp(m.Telefon_2 || m.phone2 || '');
-                            return memberPhone === phone || memberPhone2 === phone;
-                        });
-                        
-                        const crmLead = crmLeads.find(l => {
-                            const leadPhone = formatPhoneForWhatsApp(l.phone || '');
-                            return leadPhone === phone;
-                        });
-                        
-                        // Determine contact type and name
                         let type = 'unknown';
                         let extraData = {};
                         
-                        // ✅ Yönetici kontrolü ekle
-                        const user = users.find(u => {
-                            const userPhone = formatPhoneForWhatsApp(u.phone || u.phoneNumber || '');
-                            return userPhone === phone;
-                        });
-                        
-                        if (member) {
-                            contactName = member.Resit_Olmayan_Adi_Soyadi || member.Ad_Soyad || contactName;
-                            type = 'member';
-                            extraData.memberId = member.id;
-                        } else if (user) {
-                            contactName = user.fullName || user.email || contactName;
-                            type = 'user';
-                            extraData.userId = user.id;
-                        } else if (crmLead) {
-                            contactName = crmLead.name || contactName;
-                            type = 'crm';
-                            extraData.leadId = crmLead.id;
+                        // Linked device için özel işaret
+                        if (isLinkedDevice) {
+                            contactName = `🔗 ${contactName}`;
+                            type = 'linked_device';
+                        } else {
+                            // Check if contact exists in members/CRM
+                            const member = members.find(m => {
+                                const memberPhone = formatPhoneForWhatsApp(m.Telefon || m.phone || '');
+                                const memberPhone2 = formatPhoneForWhatsApp(m.Telefon_2 || m.phone2 || '');
+                                return memberPhone === phone || memberPhone2 === phone;
+                            });
+                            
+                            const crmLead = crmLeads.find(l => {
+                                const leadPhone = formatPhoneForWhatsApp(l.phone || '');
+                                return leadPhone === phone;
+                            });
+                            
+                            // ✅ Yönetici kontrolü ekle
+                            const user = users.find(u => {
+                                const userPhone = formatPhoneForWhatsApp(u.phone || u.phoneNumber || '');
+                                return userPhone === phone;
+                            });
+                            
+                            if (member) {
+                                contactName = member.Resit_Olmayan_Adi_Soyadi || member.Ad_Soyad || contactName;
+                                type = 'member';
+                                extraData.memberId = member.id;
+                            } else if (user) {
+                                contactName = user.fullName || user.email || contactName;
+                                type = 'user';
+                                extraData.userId = user.id;
+                            } else if (crmLead) {
+                                contactName = crmLead.name || contactName;
+                                type = 'crm';
+                                extraData.leadId = crmLead.id;
+                            }
                         }
                         
                         // Get last message info
@@ -6805,42 +6805,48 @@ Görev detaylarını kontrol ediniz.</textarea>
                                 // remote_jid'den telefon numarasını al
                                 const remoteJid = msg.remote_jid || '';
                                 
-                                // @lid formatındaki mesajları atla (WhatsApp linked device - aynı kişinin farklı cihazı)
-                                if (remoteJid.includes('@lid')) {
+                                // Grup mesajlarını atla (broadcast dahil)
+                                if (remoteJid.includes('@g.us') || remoteJid.includes('@broadcast')) {
                                     continue;
                                 }
                                 
-                                const phone = formatPhoneForWhatsApp(remoteJid.replace('@s.whatsapp.net', '').replace('@c.us', ''));
-                                if (!phone) continue;
+                                // Phone number extraction (including @lid)
+                                let phone = remoteJid.replace('@s.whatsapp.net', '').replace('@c.us', '').replace('@lid', '');
+                                let isLinkedDevice = remoteJid.includes('@lid');
                                 
-                                // Grup mesajlarını atla
-                                if (remoteJid.includes('@g.us') || remoteJid.includes('@broadcast')) continue;
+                                if (!phone) continue;
                                 
                                 // İlk mesaj veya daha yeni mesajsa
                                 if (!contactMap.has(phone)) {
-                                    const member = members.find(m => {
-                                        const memberPhone = formatPhoneForWhatsApp(m.Telefon || m.phone || '');
-                                        const memberPhone2 = formatPhoneForWhatsApp(m.Telefon_2 || m.phone2 || '');
-                                        return memberPhone === phone || memberPhone2 === phone;
-                                    });
-                                    
-                                    const crmLead = crmLeads.find(l => {
-                                        const leadPhone = formatPhoneForWhatsApp(l.phone || '');
-                                        return leadPhone === phone;
-                                    });
-                                    
                                     let contactName = msg.push_name || phone;
                                     let type = 'unknown';
                                     let extraData = {};
                                     
-                                    if (member) {
-                                        contactName = member.Resit_Olmayan_Adi_Soyadi || member.Ad_Soyad || contactName;
-                                        type = 'member';
-                                        extraData.memberId = member.id;
-                                    } else if (crmLead) {
-                                        contactName = crmLead.name || contactName;
-                                        type = 'crm';
-                                        extraData.leadId = crmLead.id;
+                                    // Linked device için özel işaret
+                                    if (isLinkedDevice) {
+                                        contactName = `🔗 ${contactName}`;
+                                        type = 'linked_device';
+                                    } else {
+                                        const member = members.find(m => {
+                                            const memberPhone = formatPhoneForWhatsApp(m.Telefon || m.phone || '');
+                                            const memberPhone2 = formatPhoneForWhatsApp(m.Telefon_2 || m.phone2 || '');
+                                            return memberPhone === phone || memberPhone2 === phone;
+                                        });
+                                        
+                                        const crmLead = crmLeads.find(l => {
+                                            const leadPhone = formatPhoneForWhatsApp(l.phone || '');
+                                            return leadPhone === phone;
+                                        });
+                                        
+                                        if (member) {
+                                            contactName = member.Resit_Olmayan_Adi_Soyadi || member.Ad_Soyad || contactName;
+                                            type = 'member';
+                                            extraData.memberId = member.id;
+                                        } else if (crmLead) {
+                                            contactName = crmLead.name || contactName;
+                                            type = 'crm';
+                                            extraData.leadId = crmLead.id;
+                                        }
                                     }
                                     
                                     // message_content JSONB'den mesaj metnini çıkar
