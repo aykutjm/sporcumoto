@@ -4455,9 +4455,8 @@ Görev detaylarını kontrol ediniz.</textarea>
         async function loadWhatsAppInstances() {
             const container = document.getElementById('whatsappDevicesList');
             
-            // ✅ Container kontrolü ekle
+            // ✅ Container kontrolü - sessizce çık
             if (!container) {
-                console.warn('⚠️ whatsappDevicesList container bulunamadı');
                 return;
             }
             
