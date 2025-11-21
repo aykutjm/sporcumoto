@@ -598,10 +598,10 @@
                         // Kontaktları yükle (bu ilk yükleme bildirimi tetikleyecek)
                         await loadWhatsAppContacts();
                         
-                        // ⏱️ Fallback polling başlat (10 saniyede bir)
+                        // ⏱️ Fallback polling başlat (5 saniyede bir - daha hızlı)
                         if (window.startWhatsAppAutoRefresh) {
                             startWhatsAppAutoRefresh();
-                            console.log('⏱️ WhatsApp fallback polling başlatıldı');
+                            console.log('⏱️ WhatsApp fallback polling başlatıldı (5 saniye)');
                         }
                         
                         console.log('✅ WhatsApp otomatik başlatıldı ve bildirimler hazır');
@@ -7741,9 +7741,9 @@ Görev detaylarını kontrol ediniz.</textarea>
                 
                 // ✅ Yeni mesaj kontrolü
                 checkForNewWhatsAppMessages();
-            }, 10000); // Check every 10 seconds
+            }, 5000); // ✅ 5 saniyede bir kontrol et (daha hızlı bildirim)
             
-            console.log('✅ WhatsApp fallback polling başlatıldı (10 saniyede bir)');
+            console.log('✅ WhatsApp fallback polling başlatıldı (5 saniyede bir)');
             
             // ✅ WhatsApp çağrıları için de polling başlat
             startWhatsAppCallsPolling();
