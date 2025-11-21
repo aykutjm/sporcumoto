@@ -2,11 +2,14 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Tüm dosyalarý kopyala
+# procps paketi yukle (pgrep icin gerekli)
+RUN apk add --no-cache procps
+
+# Tum dosyalari kopyala
 COPY . .
 
-# Dependencies yükle
+# Dependencies yukle
 RUN npm install --production
 
-# Birleþik script'i çalýþtýr
+# Script'i calistir
 CMD ["node", "combined-auto-reply-system.js"]
