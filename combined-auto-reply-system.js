@@ -46,29 +46,37 @@ function checkTemplateSchedule(template) {
   return true;
 }
 
-// Mesai saatleri kontrolü (sadece cevapsız aramalar için)
-function checkBusinessHours(callTime, messageSendingHours) {
-  if (!messageSendingHours?.enabled) {
-    return true;
-  }
-
+// Mesai saatleri kontrolü - Şablonun send_days ve send_time'a göre
+function checkBusinessHours(callTime, template) {
   const callDate = new Date(callTime);
   const dayOfWeek = callDate.getDay();
   const hours = callDate.getHours();
   const minutes = callDate.getMinutes();
   const timeInMinutes = hours * 60 + minutes;
 
-  if (!messageSendingHours.days?.includes(dayOfWeek)) {
+  // Gün kontrolü - şablonun send_days'ine göre
+  if (!template.send_days?.includes(dayOfWeek)) {
     return false;
   }
 
-  const [startHour, startMinute] = (messageSendingHours.start || '09:00').split(':').map(Number);
-  const [endHour, endMinute] = (messageSendingHours.end || '18:00').split(':').map(Number);
-  
-  const startInMinutes = startHour * 60 + startMinute;
-  const endInMinutes = endHour * 60 + endMinute;
+  // Saat kontrolü - şablonun send_time'ına göre (örn: "09:00:00")
+  if (template.send_time) {
+    const [startHour, startMinute] = template.send_time.split(':').map(Number);
+    const startInMinutes = startHour * 60 + startMinute;
+    
+    // Mesai başlangıcından sonra mı?
+    if (timeInMinutes < startInMinutes) {
+      return false;
+    }
+    
+    // Mesai bitişi varsayılan 18:00 (send_time + 9 saat)
+    const endInMinutes = startInMinutes + (9 * 60); // 9 saatlik mesai
+    if (timeInMinutes > endInMinutes) {
+      return false;
+    }
+  }
 
-  return timeInMinutes >= startInMinutes && timeInMinutes <= endInMinutes;
+  return true;
 }
 
 // Telefon numarasına uygun WhatsApp cihazını bul
@@ -206,9 +214,11 @@ async function processMissedCalls(club, clubSettings, devices) {
         continue;
       }
 
-      // MESAİ SAATLERİ KONTROLÜ - Cihazın kendi ayarlarından al
-      if (!checkBusinessHours(callTime, device.message_sending_hours)) {
-        console.log(`⏰ Mesai saati dışında arama: ${callerNumber} (${device.deviceName || device.device_name})`);
+      // MESAİ SAATLERİ KONTROLÜ - Şablonun send_days ve send_time'a göre
+      // (checkTemplateSchedule fonksiyonu zaten yukarıda kontrol edildi)
+      // Ek olarak arama zamanının mesai içinde olup olmadığını kontrol et
+      if (!checkBusinessHours(callTime, template)) {
+        console.log(`⏰ Mesai saati dışında arama: ${callerNumber}`);
         continue;
       }
 
@@ -218,6 +228,7 @@ async function processMissedCalls(club, clubSettings, devices) {
         console.log(`⏭️ Bugün zaten gönderildi: ${callerNumber}`);
         continue;
       }
+
 
       // Mesajı hazırla
       const message = template.message
@@ -842,10 +853,10 @@ async function main() {
 
       const clubSettings = settings.data;
 
-      // WhatsApp cihazlarını al (mesaj gönderim saatleri dahil)
+      // WhatsApp cihazlarını al
       const { data: devices } = await supabase
         .from('whatsappDevices')
-        .select('id, instanceName, phoneNumber, message_sending_hours')
+        .select('id, instanceName, phoneNumber')
         .eq('clubId', club.id);
 
       if (!devices || devices.length === 0) {
