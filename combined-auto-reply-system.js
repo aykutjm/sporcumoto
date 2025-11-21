@@ -46,23 +46,27 @@ function checkTemplateSchedule(template) {
   return true;
 }
 
-// Mesaj gönderim süreleri kontrolü - Şablonun message_send_hours ayarlarına göre
-function checkMessageSendHours(checkTime, template) {
+// Mesaj gönderim süreleri kontrolü - WhatsApp cihazın message_sending_hours ayarlarına göre
+function checkMessageSendHours(checkTime, messageSendingHours) {
+  if (!messageSendingHours?.enabled) {
+    return true; // Devre dışıysa her zaman gönder
+  }
+
   const date = new Date(checkTime);
   const dayOfWeek = date.getDay();
   const hours = date.getHours();
   const minutes = date.getMinutes();
   const timeInMinutes = hours * 60 + minutes;
 
-  // Gün kontrolü - şablonun message_send_days'ine göre
-  if (!template.message_send_days?.includes(dayOfWeek)) {
+  // Gün kontrolü - cihazın days ayarına göre
+  if (!messageSendingHours.days?.includes(dayOfWeek)) {
     return false;
   }
 
-  // Saat kontrolü - message_send_hours_start ve message_send_hours_end
-  if (template.message_send_hours_start && template.message_send_hours_end) {
-    const [startHour, startMinute] = template.message_send_hours_start.split(':').map(Number);
-    const [endHour, endMinute] = template.message_send_hours_end.split(':').map(Number);
+  // Saat kontrolü - start ve end
+  if (messageSendingHours.start && messageSendingHours.end) {
+    const [startHour, startMinute] = messageSendingHours.start.split(':').map(Number);
+    const [endHour, endMinute] = messageSendingHours.end.split(':').map(Number);
     
     const startInMinutes = startHour * 60 + startMinute;
     const endInMinutes = endHour * 60 + endMinute;
@@ -76,19 +80,23 @@ function checkMessageSendHours(checkTime, template) {
 }
 
 // En erken mesaj gönderim saatini hesapla (devamsızlık için)
-function getNextSendTime(template) {
+function getNextSendTime(messageSendingHours) {
+  if (!messageSendingHours?.enabled) {
+    return new Date(); // Devre dışıysa hemen gönder
+  }
+
   const now = new Date();
   const dayOfWeek = now.getDay();
   
   // Bugün mesaj gönderilebilir mi?
-  if (template.message_send_days?.includes(dayOfWeek)) {
-    const [startHour, startMinute] = (template.message_send_hours_start || '09:00').split(':').map(Number);
+  if (messageSendingHours.days?.includes(dayOfWeek)) {
+    const [startHour, startMinute] = (messageSendingHours.start || '09:00').split(':').map(Number);
     const startTime = new Date(now);
     startTime.setHours(startHour, startMinute, 0, 0);
     
     // Eğer şu an mesaj gönderim saati içindeyse hemen gönder
     if (now >= startTime) {
-      const [endHour, endMinute] = (template.message_send_hours_end || '18:00').split(':').map(Number);
+      const [endHour, endMinute] = (messageSendingHours.end || '18:00').split(':').map(Number);
       const endTime = new Date(now);
       endTime.setHours(endHour, endMinute, 0, 0);
       
@@ -110,8 +118,8 @@ function getNextSendTime(template) {
     nextDay.setDate(nextDay.getDate() + i);
     const nextDayOfWeek = nextDay.getDay();
     
-    if (template.message_send_days?.includes(nextDayOfWeek)) {
-      const [startHour, startMinute] = (template.message_send_hours_start || '09:00').split(':').map(Number);
+    if (messageSendingHours.days?.includes(nextDayOfWeek)) {
+      const [startHour, startMinute] = (messageSendingHours.start || '09:00').split(':').map(Number);
       nextDay.setHours(startHour, startMinute, 0, 0);
       return nextDay;
     }
@@ -256,9 +264,10 @@ async function processMissedCalls(club, clubSettings, devices) {
       }
 
       // KURAL 1: Cevapsız Arama - Mesaj gönderim süreleri içinde mi?
+      // Cihazın message_sending_hours ayarına göre kontrol et
       // Eğer arama mesaj gönderim süreleri içindeyse HEMEN gönder
       // Değilse HİÇ gönderme
-      if (!checkMessageSendHours(callTime, template)) {
+      if (!checkMessageSendHours(callTime, device.message_sending_hours)) {
         console.log(`❌ Mesaj gönderim saatleri dışında arama: ${callerNumber} - Mesaj GÖNDERİLMEYECEK`);
         continue;
       }
@@ -453,13 +462,20 @@ async function processAbsences(club, devices) {
     }
 
     // KURAL 3: Devamsızlık - Mesai içinde ise HEMEN, mesai dışında ise EN ERKEN mesaj gönderim saatinde
+    // İlk cihazın message_sending_hours ayarını kullan
+    const firstDevice = devices[0];
+    if (!firstDevice) {
+      console.log(`⚠️ WhatsApp cihazı yok`);
+      return;
+    }
+
     const now = new Date();
-    const isWithinSendHours = checkMessageSendHours(now, template);
+    const isWithinSendHours = checkMessageSendHours(now, firstDevice.message_sending_hours);
     
     let scheduledTime = null;
     if (!isWithinSendHours) {
       // Mesai dışında - en erken mesaj gönderim saatini hesapla
-      scheduledTime = getNextSendTime(template);
+      scheduledTime = getNextSendTime(firstDevice.message_sending_hours);
       console.log(`⏰ Mesai dışında - Mesajlar ${scheduledTime?.toLocaleString('tr-TR')} tarihinde gönderilecek`);
     }
     
@@ -506,13 +522,6 @@ async function processAbsences(club, devices) {
       (sentToday || []).map(s => `${s.phoneNumber}_${s.templateType}`)
     );
 
-    // İlk aktif cihazı al
-    const device = devices[0];
-    if (!device) {
-      console.log(`⚠️ WhatsApp cihazı yok`);
-      return;
-    }
-
     // Her müşteriye mesaj gönder
     for (const absence of absences) {
       const phoneNumber = absence.customers?.phone;
@@ -536,7 +545,7 @@ async function processAbsences(club, devices) {
         .insert({
           id: crypto.randomUUID(),
           club_id: club.id,
-          device_id: device.id,
+          device_id: firstDevice.id,
           to_number: phoneNumber,
           message_text: message,
           scheduled_at: sendTime.toISOString(),
@@ -914,10 +923,10 @@ async function main() {
 
       const clubSettings = settings.data;
 
-      // WhatsApp cihazlarını al
+      // WhatsApp cihazlarını al (mesaj gönderim saatleri dahil)
       const { data: devices } = await supabase
         .from('whatsappDevices')
-        .select('id, instanceName, phoneNumber')
+        .select('id, instanceName, phoneNumber, message_sending_hours')
         .eq('clubId', club.id);
 
       if (!devices || devices.length === 0) {
