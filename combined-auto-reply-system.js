@@ -46,37 +46,78 @@ function checkTemplateSchedule(template) {
   return true;
 }
 
-// Mesai saatleri kontrolü - Şablonun send_days ve send_time'a göre
-function checkBusinessHours(callTime, template) {
-  const callDate = new Date(callTime);
-  const dayOfWeek = callDate.getDay();
-  const hours = callDate.getHours();
-  const minutes = callDate.getMinutes();
+// Mesaj gönderim süreleri kontrolü - Şablonun message_send_hours ayarlarına göre
+function checkMessageSendHours(checkTime, template) {
+  const date = new Date(checkTime);
+  const dayOfWeek = date.getDay();
+  const hours = date.getHours();
+  const minutes = date.getMinutes();
   const timeInMinutes = hours * 60 + minutes;
 
-  // Gün kontrolü - şablonun send_days'ine göre
-  if (!template.send_days?.includes(dayOfWeek)) {
+  // Gün kontrolü - şablonun message_send_days'ine göre
+  if (!template.message_send_days?.includes(dayOfWeek)) {
     return false;
   }
 
-  // Saat kontrolü - şablonun send_time'ına göre (örn: "09:00:00")
-  if (template.send_time) {
-    const [startHour, startMinute] = template.send_time.split(':').map(Number);
+  // Saat kontrolü - message_send_hours_start ve message_send_hours_end
+  if (template.message_send_hours_start && template.message_send_hours_end) {
+    const [startHour, startMinute] = template.message_send_hours_start.split(':').map(Number);
+    const [endHour, endMinute] = template.message_send_hours_end.split(':').map(Number);
+    
     const startInMinutes = startHour * 60 + startMinute;
+    const endInMinutes = endHour * 60 + endMinute;
     
-    // Mesai başlangıcından sonra mı?
-    if (timeInMinutes < startInMinutes) {
-      return false;
-    }
-    
-    // Mesai bitişi varsayılan 18:00 (send_time + 9 saat)
-    const endInMinutes = startInMinutes + (9 * 60); // 9 saatlik mesai
-    if (timeInMinutes > endInMinutes) {
+    if (timeInMinutes < startInMinutes || timeInMinutes > endInMinutes) {
       return false;
     }
   }
 
   return true;
+}
+
+// En erken mesaj gönderim saatini hesapla (devamsızlık için)
+function getNextSendTime(template) {
+  const now = new Date();
+  const dayOfWeek = now.getDay();
+  
+  // Bugün mesaj gönderilebilir mi?
+  if (template.message_send_days?.includes(dayOfWeek)) {
+    const [startHour, startMinute] = (template.message_send_hours_start || '09:00').split(':').map(Number);
+    const startTime = new Date(now);
+    startTime.setHours(startHour, startMinute, 0, 0);
+    
+    // Eğer şu an mesaj gönderim saati içindeyse hemen gönder
+    if (now >= startTime) {
+      const [endHour, endMinute] = (template.message_send_hours_end || '18:00').split(':').map(Number);
+      const endTime = new Date(now);
+      endTime.setHours(endHour, endMinute, 0, 0);
+      
+      if (now <= endTime) {
+        return now; // Şu an gönder
+      }
+    }
+    
+    // Yarın için hesapla
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(startHour, startMinute, 0, 0);
+    return tomorrow;
+  }
+  
+  // Bir sonraki uygun günü bul
+  for (let i = 1; i <= 7; i++) {
+    const nextDay = new Date(now);
+    nextDay.setDate(nextDay.getDate() + i);
+    const nextDayOfWeek = nextDay.getDay();
+    
+    if (template.message_send_days?.includes(nextDayOfWeek)) {
+      const [startHour, startMinute] = (template.message_send_hours_start || '09:00').split(':').map(Number);
+      nextDay.setHours(startHour, startMinute, 0, 0);
+      return nextDay;
+    }
+  }
+  
+  return null;
 }
 
 // Telefon numarasına uygun WhatsApp cihazını bul
@@ -214,11 +255,11 @@ async function processMissedCalls(club, clubSettings, devices) {
         continue;
       }
 
-      // MESAİ SAATLERİ KONTROLÜ - Şablonun send_days ve send_time'a göre
-      // (checkTemplateSchedule fonksiyonu zaten yukarıda kontrol edildi)
-      // Ek olarak arama zamanının mesai içinde olup olmadığını kontrol et
-      if (!checkBusinessHours(callTime, template)) {
-        console.log(`⏰ Mesai saati dışında arama: ${callerNumber}`);
+      // KURAL 1: Cevapsız Arama - Mesaj gönderim süreleri içinde mi?
+      // Eğer arama mesaj gönderim süreleri içindeyse HEMEN gönder
+      // Değilse HİÇ gönderme
+      if (!checkMessageSendHours(callTime, template)) {
+        console.log(`❌ Mesaj gönderim saatleri dışında arama: ${callerNumber} - Mesaj GÖNDERİLMEYECEK`);
         continue;
       }
 
@@ -294,19 +335,24 @@ async function processOverduePayments(club, devices) {
       return;
     }
 
-    // Gecikmiş ödemeleri bul
+    // KURAL 2: Gecikmiş Ödeme - Ödeme tarihinden N gün sonra (şablondan)
+    const daysAfterDue = template.days_before || 2; // Default 2 gün
     const today = new Date();
+    const checkDate = new Date(today);
+    checkDate.setDate(checkDate.getDate() - daysAfterDue); // N gün önce
+    
     const { data: overduePayments } = await supabase
       .from('accounting')
       .select(`
         id,
         customerId,
+        dueDate,
         customers!inner(name, phone)
       `)
       .eq('branchId', club.id)
       .eq('type', 'income')
       .eq('status', 'pending')
-      .lt('dueDate', today.toISOString());
+      .lt('dueDate', checkDate.toISOString()); // dueDate < (bugün - N gün)
 
     if (!overduePayments || overduePayments.length === 0) {
       console.log(`✅ ${club.name}: Gecikmiş ödeme yok`);
@@ -406,6 +452,17 @@ async function processAbsences(club, devices) {
       return;
     }
 
+    // KURAL 3: Devamsızlık - Mesai içinde ise HEMEN, mesai dışında ise EN ERKEN mesaj gönderim saatinde
+    const now = new Date();
+    const isWithinSendHours = checkMessageSendHours(now, template);
+    
+    let scheduledTime = null;
+    if (!isWithinSendHours) {
+      // Mesai dışında - en erken mesaj gönderim saatini hesapla
+      scheduledTime = getNextSendTime(template);
+      console.log(`⏰ Mesai dışında - Mesajlar ${scheduledTime?.toLocaleString('tr-TR')} tarihinde gönderilecek`);
+    }
+    
     // Son 7 gündeki yoklamaları kontrol et
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
@@ -472,7 +529,8 @@ async function processAbsences(club, devices) {
         .replace('{ISIM}', absence.customers.name)
         .replace('{TARIH}', new Date().toLocaleDateString('tr-TR'));
 
-      // Kuyruğa ekle
+      // Kuyruğa ekle (mesai dışında ise scheduledTime kullan)
+      const sendTime = scheduledTime || new Date();
       await supabase
         .from('message_queue')
         .insert({
@@ -481,7 +539,7 @@ async function processAbsences(club, devices) {
           device_id: device.id,
           to_number: phoneNumber,
           message_text: message,
-          scheduled_at: new Date().toISOString(),
+          scheduled_at: sendTime.toISOString(),
           status: 'pending'
         });
 
@@ -494,7 +552,10 @@ async function processAbsences(club, devices) {
           sentAt: new Date().toISOString()
         });
 
-      console.log(`✅ Devamsızlık mesajı kuyruğa eklendi: ${phoneNumber}`);
+      const statusMsg = scheduledTime 
+        ? `📅 Zamanlanmış (${sendTime.toLocaleString('tr-TR')})` 
+        : `✅ Hemen gönderilecek`;
+      console.log(`${statusMsg} Devamsızlık mesajı: ${phoneNumber}`);
       sentCombinations.add(combinationKey);
     }
   } catch (error) {
