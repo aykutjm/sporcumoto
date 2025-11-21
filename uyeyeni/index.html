@@ -51,6 +51,21 @@
             opacity: 1;
             transform: translateY(0);
         }
+        
+        /* Modal Animation */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        .animate-fadeIn {
+            animation: fadeIn 0.3s ease-out;
+        }
     </style>
 </head>
 <body class="text-slate-700">
@@ -64,10 +79,10 @@
             </a>
             <nav class="hidden md:flex items-center space-x-8">
                 <a href="#hizmetler" class="text-slate-600 hover:text-blue-600 transition-colors">Hizmetler</a>
-                <a href="detay.html" class="text-blue-600 hover:text-blue-700 transition-colors font-semibold">🎯 Canlı Demo</a>
                 <a href="#neden-biz" class="text-slate-600 hover:text-blue-600 transition-colors">Neden Biz?</a>
                 <a href="#referanslar" class="text-slate-600 hover:text-blue-600 transition-colors">Referanslar</a>
                 <a href="#iletisim" class="text-slate-600 hover:text-blue-600 transition-colors">İletişim</a>
+                <a href="detay.html" target="_blank" class="text-blue-600 hover:text-blue-700 transition-colors font-semibold">🎯 Canlı Demo</a>
             </nav>
             <div class="hidden md:flex items-center space-x-4">
                 <a href="giris" class="cta-button bg-blue-600 text-white font-semibold px-5 py-2.5 rounded-lg shadow-sm hover:bg-blue-700">
@@ -83,10 +98,10 @@
         </div>
         <div id="mobile-menu" class="hidden md:hidden px-6 pb-4 border-t border-slate-200 pt-4">
             <a href="#hizmetler" class="block py-2 text-slate-600 hover:text-blue-600">Hizmetler</a>
-            <a href="detay.html" class="block py-2 text-blue-600 hover:text-blue-700 font-semibold">🎯 Canlı Demo</a>
             <a href="#neden-biz" class="block py-2 text-slate-600 hover:text-blue-600">Neden Biz?</a>
             <a href="#referanslar" class="block py-2 text-slate-600 hover:text-blue-600">Referanslar</a>
             <a href="#iletisim" class="block py-2 text-slate-600 hover:text-blue-600">İletişim</a>
+            <a href="detay.html" target="_blank" class="block py-2 text-blue-600 hover:text-blue-700 font-semibold">🎯 Canlı Demo</a>
             <a href="giris" class="block mt-4 w-full text-center cta-button bg-blue-600 text-white font-semibold px-5 py-2.5 rounded-lg shadow-sm hover:bg-blue-700">
                 Giriş Yap
             </a>
@@ -99,18 +114,96 @@
     <main>
         <!-- 1. Hero Section -->
         <section id="hero" class="hero-gradient pt-20 pb-24 md:pt-28 md:pb-32">
-            <div class="container mx-auto px-6 text-center">
-                <div class="max-w-3xl mx-auto">
-                    <h1 class="text-4xl md:text-6xl font-extrabold text-slate-900 leading-tight mb-6 scroll-animate">
-                        Spor Kulübünüzü Dijital Geleceğe Taşıyın
-                    </h1>
-                    <p class="text-lg md:text-xl text-slate-600 mb-10 max-w-2xl mx-auto scroll-animate" style="transition-delay: 150ms;">
-                        Yönetimi basitleştirin, verimliliği artırın ve tüm enerjinizi sporcularınıza odaklayın. Sporcum ile tanışın.
-                    </p>
-                    <div class="scroll-animate" style="transition-delay: 300ms;">
-                        <a href="#iletisim" class="cta-button inline-block bg-blue-600 text-white font-bold text-lg px-8 py-4 rounded-xl shadow-lg hover:bg-blue-700">
-                            Hemen Ücretsiz Demo Talep Edin
-                        </a>
+            <div class="container mx-auto px-6">
+                <div class="grid md:grid-cols-2 gap-12 items-center">
+                    <div class="text-center md:text-left">
+                        <h1 class="text-4xl md:text-6xl font-extrabold text-slate-900 leading-tight mb-6 scroll-animate">
+                            Spor Kulübünüzü Dijital Geleceğe Taşıyın
+                        </h1>
+                        <p class="text-lg md:text-xl text-slate-600 mb-10 scroll-animate" style="transition-delay: 150ms;">
+                            Yönetimi basitleştirin, verimliliği artırın ve tüm enerjinizi sporcularınıza odaklayın. Sporcum ile tanışın.
+                        </p>
+                        <div class="scroll-animate" style="transition-delay: 300ms;">
+                            <a href="#iletisim" class="cta-button inline-block bg-blue-600 text-white font-bold text-lg px-8 py-4 rounded-xl shadow-lg hover:bg-blue-700">
+                                Hemen Ücretsiz Demo Talep Edin
+                            </a>
+                        </div>
+                    </div>
+                    <div class="scroll-animate hidden md:block" style="transition-delay: 200ms;">
+                        <div class="relative">
+                            <div class="absolute -inset-4 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-3xl opacity-20 blur-2xl"></div>
+                            <div class="relative bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-200">
+                                <!-- Mockup Browser Header -->
+                                <div class="bg-slate-100 px-4 py-3 flex items-center gap-2 border-b border-slate-200">
+                                    <div class="flex gap-1.5">
+                                        <div class="w-3 h-3 rounded-full bg-red-400"></div>
+                                        <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
+                                        <div class="w-3 h-3 rounded-full bg-green-400"></div>
+                                    </div>
+                                    <div class="flex-1 mx-4 bg-white rounded px-3 py-1 text-xs text-slate-400">
+                                        sporcum.co/dashboard
+                                    </div>
+                                </div>
+                                <!-- Dashboard Content -->
+                                <div class="bg-gradient-to-br from-slate-50 to-blue-50 p-6">
+                                    <div class="grid grid-cols-3 gap-3 mb-4">
+                                        <div class="bg-white rounded-lg p-4 shadow-sm">
+                                            <div class="flex items-center justify-between mb-2">
+                                                <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                                                    <i data-lucide="users" class="w-4 h-4 text-blue-600"></i>
+                                                </div>
+                                                <span class="text-xs text-green-600 font-semibold">+12%</span>
+                                            </div>
+                                            <p class="text-2xl font-bold text-slate-800">486</p>
+                                            <p class="text-xs text-slate-500">Aktif Üye</p>
+                                        </div>
+                                        <div class="bg-white rounded-lg p-4 shadow-sm">
+                                            <div class="flex items-center justify-between mb-2">
+                                                <div class="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center">
+                                                    <i data-lucide="credit-card" class="w-4 h-4 text-green-600"></i>
+                                                </div>
+                                                <span class="text-xs text-green-600 font-semibold">+8%</span>
+                                            </div>
+                                            <p class="text-2xl font-bold text-slate-800">₺840K</p>
+                                            <p class="text-xs text-slate-500">Aylık Gelir</p>
+                                        </div>
+                                        <div class="bg-white rounded-lg p-4 shadow-sm">
+                                            <div class="flex items-center justify-between mb-2">
+                                                <div class="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
+                                                    <i data-lucide="calendar-check" class="w-4 h-4 text-purple-600"></i>
+                                                </div>
+                                                <span class="text-xs text-green-600 font-semibold">%94</span>
+                                            </div>
+                                            <p class="text-2xl font-bold text-slate-800">342</p>
+                                            <p class="text-xs text-slate-500">Yoklama</p>
+                                        </div>
+                                    </div>
+                                    <div class="bg-white rounded-lg p-4 shadow-sm">
+                                        <div class="flex items-center justify-between mb-3">
+                                            <h3 class="font-semibold text-slate-700 text-sm">Son Hareketler</h3>
+                                            <i data-lucide="more-horizontal" class="w-4 h-4 text-slate-400"></i>
+                                        </div>
+                                        <div class="space-y-2">
+                                            <div class="flex items-center gap-3">
+                                                <div class="w-2 h-2 rounded-full bg-green-500"></div>
+                                                <div class="flex-1 text-xs text-slate-600">Ahmet Yılmaz - Ödeme Alındı</div>
+                                                <span class="text-xs text-slate-400">2dk</span>
+                                            </div>
+                                            <div class="flex items-center gap-3">
+                                                <div class="w-2 h-2 rounded-full bg-blue-500"></div>
+                                                <div class="flex-1 text-xs text-slate-600">Yeni üye kaydı oluşturuldu</div>
+                                                <span class="text-xs text-slate-400">15dk</span>
+                                            </div>
+                                            <div class="flex items-center gap-3">
+                                                <div class="w-2 h-2 rounded-full bg-purple-500"></div>
+                                                <div class="flex-1 text-xs text-slate-600">Yoklama tamamlandı</div>
+                                                <span class="text-xs text-slate-400">1sa</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -183,7 +276,95 @@
             <div class="container mx-auto px-6">
                 <div class="grid md:grid-cols-2 gap-12 items-center">
                     <div class="scroll-animate h-full">
-                        <img src="https://images.unsplash.com/photo-1517649763962-0c623066013b?q=80&w=1470&auto=format&fit=crop" alt="Sporcum kullanan genç sporcular" class="rounded-2xl shadow-xl w-full h-full object-cover">
+                        <div class="rounded-2xl shadow-xl w-full h-full overflow-hidden bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 p-6 flex flex-col">
+                            <div class="grid grid-cols-3 md:grid-cols-5 gap-2.5 w-full mb-3">
+                                <div class="bg-white/95 backdrop-blur rounded-lg p-3 text-center transform hover:scale-105 transition-all duration-300 hover:shadow-lg">
+                                    <i data-lucide="trophy" class="w-7 h-7 text-yellow-500 mx-auto mb-1"></i>
+                                    <p class="font-bold text-slate-800 text-xs">Futbol</p>
+                                </div>
+                                <div class="bg-white/95 backdrop-blur rounded-lg p-3 text-center transform hover:scale-105 transition-all duration-300 hover:shadow-lg">
+                                    <i data-lucide="activity" class="w-7 h-7 text-orange-500 mx-auto mb-1"></i>
+                                    <p class="font-bold text-slate-800 text-xs">Basketbol</p>
+                                </div>
+                                <div class="bg-white/95 backdrop-blur rounded-lg p-3 text-center transform hover:scale-105 transition-all duration-300 hover:shadow-lg">
+                                    <i data-lucide="goal" class="w-7 h-7 text-blue-500 mx-auto mb-1"></i>
+                                    <p class="font-bold text-slate-800 text-xs">Tenis</p>
+                                </div>
+                                <div class="bg-white/95 backdrop-blur rounded-lg p-3 text-center transform hover:scale-105 transition-all duration-300 hover:shadow-lg">
+                                    <i data-lucide="waves" class="w-7 h-7 text-cyan-500 mx-auto mb-1"></i>
+                                    <p class="font-bold text-slate-800 text-xs">Yüzme</p>
+                                </div>
+                                <div class="bg-white/95 backdrop-blur rounded-lg p-3 text-center transform hover:scale-105 transition-all duration-300 hover:shadow-lg">
+                                    <i data-lucide="circle-dot" class="w-7 h-7 text-purple-500 mx-auto mb-1"></i>
+                                    <p class="font-bold text-slate-800 text-xs">Voleybol</p>
+                                </div>
+                                <div class="bg-white/95 backdrop-blur rounded-lg p-3 text-center transform hover:scale-105 transition-all duration-300 hover:shadow-lg">
+                                    <i data-lucide="dumbbell" class="w-7 h-7 text-red-500 mx-auto mb-1"></i>
+                                    <p class="font-bold text-slate-800 text-xs">Fitness</p>
+                                </div>
+                                <div class="bg-white/95 backdrop-blur rounded-lg p-3 text-center transform hover:scale-105 transition-all duration-300 hover:shadow-lg">
+                                    <i data-lucide="heart-pulse" class="w-7 h-7 text-pink-500 mx-auto mb-1"></i>
+                                    <p class="font-bold text-slate-800 text-xs">Yoga</p>
+                                </div>
+                                <div class="bg-white/95 backdrop-blur rounded-lg p-3 text-center transform hover:scale-105 transition-all duration-300 hover:shadow-lg">
+                                    <i data-lucide="shield" class="w-7 h-7 text-green-600 mx-auto mb-1"></i>
+                                    <p class="font-bold text-slate-800 text-xs">Dövüş</p>
+                                </div>
+                                <div class="bg-white/95 backdrop-blur rounded-lg p-3 text-center transform hover:scale-105 transition-all duration-300 hover:shadow-lg">
+                                    <i data-lucide="bike" class="w-7 h-7 text-emerald-500 mx-auto mb-1"></i>
+                                    <p class="font-bold text-slate-800 text-xs">Bisiklet</p>
+                                </div>
+                                <div class="bg-white/95 backdrop-blur rounded-lg p-3 text-center transform hover:scale-105 transition-all duration-300 hover:shadow-lg">
+                                    <i data-lucide="mountain" class="w-7 h-7 text-stone-600 mx-auto mb-1"></i>
+                                    <p class="font-bold text-slate-800 text-xs">Tırmanış</p>
+                                </div>
+                                <div class="bg-white/95 backdrop-blur rounded-lg p-3 text-center transform hover:scale-105 transition-all duration-300 hover:shadow-lg">
+                                    <i data-lucide="wind" class="w-7 h-7 text-sky-400 mx-auto mb-1"></i>
+                                    <p class="font-bold text-slate-800 text-xs">Kayak</p>
+                                </div>
+                                <div class="bg-white/95 backdrop-blur rounded-lg p-3 text-center transform hover:scale-105 transition-all duration-300 hover:shadow-lg">
+                                    <i data-lucide="footprints" class="w-7 h-7 text-amber-600 mx-auto mb-1"></i>
+                                    <p class="font-bold text-slate-800 text-xs">Atletizm</p>
+                                </div>
+                                <div class="bg-white/95 backdrop-blur rounded-lg p-3 text-center transform hover:scale-105 transition-all duration-300 hover:shadow-lg">
+                                    <i data-lucide="zap" class="w-7 h-7 text-yellow-400 mx-auto mb-1"></i>
+                                    <p class="font-bold text-slate-800 text-xs">Jimnastik</p>
+                                </div>
+                                <div class="bg-white/95 backdrop-blur rounded-lg p-3 text-center transform hover:scale-105 transition-all duration-300 hover:shadow-lg">
+                                    <i data-lucide="move" class="w-7 h-7 text-violet-500 mx-auto mb-1"></i>
+                                    <p class="font-bold text-slate-800 text-xs">Dans</p>
+                                </div>
+                                <div class="bg-white/95 backdrop-blur rounded-lg p-3 text-center transform hover:scale-105 transition-all duration-300 hover:shadow-lg">
+                                    <i data-lucide="disc" class="w-7 h-7 text-rose-500 mx-auto mb-1"></i>
+                                    <p class="font-bold text-slate-800 text-xs">Pilates</p>
+                                </div>
+                                <div class="bg-white/95 backdrop-blur rounded-lg p-3 text-center transform hover:scale-105 transition-all duration-300 hover:shadow-lg">
+                                    <i data-lucide="rotate-3d" class="w-7 h-7 text-indigo-500 mx-auto mb-1"></i>
+                                    <p class="font-bold text-slate-800 text-xs">Squash</p>
+                                </div>
+                                <div class="bg-white/95 backdrop-blur rounded-lg p-3 text-center transform hover:scale-105 transition-all duration-300 hover:shadow-lg">
+                                    <i data-lucide="target" class="w-7 h-7 text-red-600 mx-auto mb-1"></i>
+                                    <p class="font-bold text-slate-800 text-xs">Okçuluk</p>
+                                </div>
+                                <div class="bg-white/95 backdrop-blur rounded-lg p-3 text-center transform hover:scale-105 transition-all duration-300 hover:shadow-lg">
+                                    <i data-lucide="sword" class="w-7 h-7 text-slate-600 mx-auto mb-1"></i>
+                                    <p class="font-bold text-slate-800 text-xs">Eskrim</p>
+                                </div>
+                                <div class="bg-white/95 backdrop-blur rounded-lg p-3 text-center transform hover:scale-105 transition-all duration-300 hover:shadow-lg">
+                                    <i data-lucide="sailboat" class="w-7 h-7 text-blue-400 mx-auto mb-1"></i>
+                                    <p class="font-bold text-slate-800 text-xs">Yelken</p>
+                                </div>
+                                <div class="bg-white/95 backdrop-blur rounded-lg p-3 text-center transform hover:scale-105 transition-all duration-300 hover:shadow-lg">
+                                    <i data-lucide="crosshair" class="w-7 h-7 text-orange-600 mx-auto mb-1"></i>
+                                    <p class="font-bold text-slate-800 text-xs">Atıcılık</p>
+                                </div>
+                            </div>
+                            <div class="bg-white/95 backdrop-blur rounded-lg p-3 text-center border-2 border-dashed border-white/50">
+                                <i data-lucide="sparkles" class="w-7 h-7 text-amber-500 mx-auto mb-1"></i>
+                                <p class="font-bold text-slate-800 text-xs mb-1">Özel Geliştirme</p>
+                                <p class="text-xs text-slate-600">Tüm spor branşları için özel çözümler</p>
+                            </div>
+                        </div>
                     </div>
                     <div class="scroll-animate" style="transition-delay: 150ms;">
                         <h2 class="text-3xl md:text-4xl font-bold text-slate-900 mb-6">Neden Sporcum'u Seçmelisiniz?</h2>
@@ -287,7 +468,7 @@
                             <p class="text-blue-100 text-lg mb-8">Aşağıdaki formu doldurun, uzman ekibimiz size özel bir demo sunumu için en kısa sürede sizinle iletişime geçsin.</p>
                             <div class="space-y-4">
                                 <p class="flex items-center"><i data-lucide="mail" class="w-5 h-5 mr-3 text-blue-200"></i> info@sporcum.co</p>
-                                <p class="flex items-center"><i data-lucide="phone" class="w-5 h-5 mr-3 text-blue-200"></i> 0362 360 00 64</p>
+                                <p class="flex items-center"><i data-lucide="phone" class="w-5 h-5 mr-3 text-blue-200"></i> 036 363 00 63</p>
                             </div>
                         </div>
                         <div class="bg-white p-8 rounded-2xl text-slate-800 shadow-2xl scroll-animate" style="transition-delay: 150ms;">
@@ -351,18 +532,143 @@
                 <div>
                     <h4 class="font-bold text-white mb-4">Bizi Takip Edin</h4>
                     <div class="flex space-x-4">
-                        <a href="#" class="hover:text-blue-400 transition-colors"><i data-lucide="twitter"></i></a>
-                        <a href="#" class="hover:text-blue-400 transition-colors"><i data-lucide="instagram"></i></a>
-                        <a href="#" class="hover:text-blue-400 transition-colors"><i data-lucide="linkedin"></i></a>
-                        <a href="#" class="hover:text-blue-400 transition-colors"><i data-lucide="facebook"></i></a>
+                        <a href="https://www.instagram.com/wao_tr" target="_blank" class="hover:text-blue-400 transition-colors" aria-label="Instagram"><i data-lucide="instagram"></i></a>
                     </div>
                 </div>
             </div>
             <div class="mt-12 border-t border-slate-700 pt-8 text-center text-sm text-slate-400">
                 <p>&copy; 2024 Sporcum Teknoloji A.Ş. Tüm hakları saklıdır.</p>
+                <div class="mt-4 flex justify-center gap-4 flex-wrap">
+                    <a href="#" onclick="showLegalModal('privacy'); return false;" class="hover:text-blue-400 transition-colors">Gizlilik Politikası</a>
+                    <span>|</span>
+                    <a href="#" onclick="showLegalModal('kvkk'); return false;" class="hover:text-blue-400 transition-colors">KVKK</a>
+                    <span>|</span>
+                    <a href="#" onclick="showLegalModal('terms'); return false;" class="hover:text-blue-400 transition-colors">Kullanım Koşulları</a>
+                </div>
             </div>
         </div>
     </footer>
+
+    <!-- Bilgilendirme Modalı (Otomatik Açılır) -->
+    <div id="infoModal" class="hidden fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+        <div class="bg-gradient-to-br from-blue-50 to-white max-w-xl sm:max-w-2xl w-full rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden animate-fadeIn my-4 sm:my-8">
+            <!-- Modal Header -->
+            <div class="bg-gradient-to-r from-blue-600 to-indigo-600 p-3 sm:p-4 md:p-6 text-white">
+                <div class="flex justify-between items-start sm:items-center gap-2">
+                    <div class="flex items-start sm:items-center gap-2 flex-1 min-w-0">
+                        <div class="bg-white/20 backdrop-blur-sm rounded-full p-1.5 sm:p-2 shrink-0">
+                            <svg class="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                        <h2 class="text-base sm:text-xl md:text-2xl font-bold leading-tight">Sporcum'a Hoş Geldiniz! 🎉</h2>
+                    </div>
+                    <button onclick="closeInfoModal()" class="text-white/80 hover:text-white transition-colors text-2xl sm:text-3xl leading-none hover:rotate-90 transform duration-300 shrink-0">
+                        ×
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Modal Body -->
+            <div class="p-3 sm:p-4 md:p-6">
+                <div class="space-y-3 sm:space-y-4 md:space-y-6">
+                    <!-- Ücretsiz Web Sitesi -->
+                    <div class="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-lg sm:rounded-xl p-3 sm:p-4 md:p-6">
+                        <div class="flex flex-col sm:flex-row items-start gap-2 sm:gap-3 md:gap-4">
+                            <div class="bg-green-500 rounded-full p-2 shrink-0">
+                                <svg class="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/>
+                                </svg>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <h3 class="text-sm sm:text-base md:text-lg font-bold text-green-900 mb-1 sm:mb-2">🎁 Ücretsiz Web Sitesi Hediye!</h3>
+                                <p class="text-xs sm:text-sm text-green-800 leading-relaxed">
+                                    Sporcum kullanan tüm kulüplere <strong>tamamen ücretsiz</strong> profesyonel web sitesi tasarımı hediye! 
+                                    Kulübünüzü dijital dünyada temsil edin, üyelerinize online erişim sağlayın.
+                                </p>
+                                <div class="mt-2 flex items-center gap-1.5 text-xs text-green-700">
+                                    <svg class="w-3 h-3 sm:w-4 sm:h-4 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                    </svg>
+                                    <span>Mobil uyumlu tasarım</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Özellikler -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                        <div class="flex items-start gap-2 p-2 sm:p-3 bg-blue-50 rounded-lg">
+                            <div class="bg-blue-500 rounded-lg p-1.5 shrink-0">
+                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                                </svg>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <h4 class="font-semibold text-blue-900 text-xs sm:text-sm">Üye Yönetimi</h4>
+                                <p class="text-[10px] sm:text-xs text-blue-700">Tüm üyelerinizi tek platformda</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start gap-2 p-2 sm:p-3 bg-purple-50 rounded-lg">
+                            <div class="bg-purple-500 rounded-lg p-1.5 shrink-0">
+                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <h4 class="font-semibold text-purple-900 text-xs sm:text-sm">Yoklama</h4>
+                                <p class="text-[10px] sm:text-xs text-purple-700">Hızlı ve pratik</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start gap-2 p-2 sm:p-3 bg-pink-50 rounded-lg">
+                            <div class="bg-pink-500 rounded-lg p-1.5 shrink-0">
+                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                                </svg>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <h4 class="font-semibold text-pink-900 text-xs sm:text-sm">Ödeme</h4>
+                                <p class="text-[10px] sm:text-xs text-pink-700">Otomatik hatırlatma</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start gap-2 p-2 sm:p-3 bg-indigo-50 rounded-lg">
+                            <div class="bg-indigo-500 rounded-lg p-1.5 shrink-0">
+                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+                                </svg>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <h4 class="font-semibold text-indigo-900 text-xs sm:text-sm">WhatsApp CRM</h4>
+                                <p class="text-[10px] sm:text-xs text-indigo-700">Toplu mesaj</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CTA Button -->
+                    <div class="pt-2 sm:pt-3">
+                        <a href="#iletisim" onclick="closeInfoModal(); scrollToSection(event, 'iletisim');" 
+                           class="block w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-center py-2.5 sm:py-3 px-4 rounded-lg sm:rounded-xl font-semibold text-sm sm:text-base shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300">
+                            🚀 Hemen Demo Talep Et
+                        </a>
+                        <p class="text-center text-[10px] sm:text-xs text-slate-500 mt-1.5 sm:mt-2">
+                            Kurulum ücretsiz • 30 gün deneme
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Legal Modals -->
+    <div id="legalModal" class="hidden fixed inset-0 bg-black bg-opacity-80 z-50 overflow-y-auto">
+        <div class="max-w-4xl mx-auto my-8 sm:my-12 bg-white rounded-xl sm:rounded-2xl p-4 sm:p-8 md:p-12 relative mx-4">
+            <button onclick="closeLegalModal()" class="absolute top-2 right-2 sm:top-4 sm:right-4 text-slate-400 hover:text-slate-600 text-2xl sm:text-3xl leading-none w-8 h-8 flex items-center justify-center">&times;</button>
+            <div id="legalContent" class="prose prose-slate prose-sm sm:prose-base max-w-none mt-8 sm:mt-0"></div>
+        </div>
+    </div>
 
     <script>
         // Lucide Icons Activation
@@ -477,6 +783,350 @@
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Demo Talep Et';
             });
+        }
+    </script>
+
+    <!-- WhatsApp Floating Button -->
+    <a href="https://wa.me/903623630063" target="_blank" id="whatsapp-button" class="fixed bottom-24 right-6 bg-green-500 hover:bg-green-600 text-white rounded-full w-16 h-16 flex items-center justify-center shadow-2xl transition-all duration-300 hover:scale-110 z-50 group">
+        <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+        </svg>
+        <span class="absolute right-full mr-3 bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+            WhatsApp'tan Yazın
+        </span>
+    </a>
+
+    <style>
+        /* WhatsApp button animation */
+        @keyframes pulse-ring {
+            0% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+            }
+            70% {
+                transform: scale(1);
+                box-shadow: 0 0 0 15px rgba(34, 197, 94, 0);
+            }
+            100% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+            }
+        }
+        
+        #whatsapp-button {
+            animation: pulse-ring 2s infinite;
+        }
+        
+        /* Smooth scroll behavior for button position */
+        #whatsapp-button {
+            transition: transform 0.3s ease-out;
+        }
+    </style>
+
+    <script>
+        // WhatsApp button scroll animation
+        let lastScrollTop = 0;
+        const whatsappButton = document.getElementById('whatsapp-button');
+        
+        window.addEventListener('scroll', function() {
+            let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            
+            if (scrollTop > lastScrollTop) {
+                // Scrolling down
+                whatsappButton.style.transform = 'translateY(-10px)';
+            } else {
+                // Scrolling up
+                whatsappButton.style.transform = 'translateY(10px)';
+            }
+            
+            lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
+            
+            // Reset position after scroll stops
+            clearTimeout(window.scrollEndTimer);
+            window.scrollEndTimer = setTimeout(() => {
+                whatsappButton.style.transform = 'translateY(0)';
+            }, 150);
+        });
+
+        // Legal Modal Functions
+        function showLegalModal(type) {
+            const modal = document.getElementById('legalModal');
+            const content = document.getElementById('legalContent');
+            
+            const legalTexts = {
+                privacy: `
+                    <h2 style="color: #1e293b; margin-bottom: 20px;">Gizlilik Politikası</h2>
+                    <div style="color: #475569; line-height: 1.8;">
+                        <p><strong>Son Güncelleme: 13 Kasım 2025</strong></p>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">1. Giriş</h3>
+                        <p>Sporcum olarak, kullanıcılarımızın gizliliğine saygı duyuyor ve kişisel verilerinizi korumayı taahhüt ediyoruz. Bu Gizlilik Politikası, topladığımız bilgileri, bu bilgileri nasıl kullandığımızı ve haklarınızı açıklamaktadır.</p>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">2. Toplanan Bilgiler</h3>
+                        <p>Hizmetlerimizi kullanırken aşağıdaki bilgileri toplayabiliriz:</p>
+                        <ul style="margin-left: 20px;">
+                            <li>Ad, soyad ve iletişim bilgileri</li>
+                            <li>Spor kulübü bilgileri ve üyelik detayları</li>
+                            <li>Ödeme ve fatura bilgileri</li>
+                            <li>Kullanım verileri ve tercihler</li>
+                            <li>IP adresi ve cihaz bilgileri</li>
+                        </ul>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">3. Bilgilerin Kullanımı</h3>
+                        <p>Topladığımız bilgileri şu amaçlarla kullanırız:</p>
+                        <ul style="margin-left: 20px;">
+                            <li>Hizmetlerimizi sağlamak ve geliştirmek</li>
+                            <li>Müşteri desteği sunmak</li>
+                            <li>Ödemeleri işlemek</li>
+                            <li>Güvenlik ve dolandırıcılık önleme</li>
+                            <li>Yasal yükümlülükleri yerine getirmek</li>
+                        </ul>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">4. Veri Güvenliği</h3>
+                        <p>Verilerinizi korumak için endüstri standardı güvenlik önlemleri kullanıyoruz. Tüm veriler şifreli olarak saklanır ve yetkisiz erişime karşı korunur.</p>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">5. Çerezler</h3>
+                        <p>Web sitemiz, kullanıcı deneyimini geliştirmek için çerezler kullanır. Tarayıcı ayarlarınızdan çerezleri yönetebilirsiniz.</p>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">6. Üçüncü Taraf Paylaşımı</h3>
+                        <p>Kişisel verilerinizi, yasal zorunluluklar dışında üçüncü taraflarla paylaşmayız. Hizmet sağlayıcılarımız, verilerinizi yalnızca bizim adımıza işlemek için kullanır.</p>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">7. Haklarınız</h3>
+                        <p>Kişisel verilerinizle ilgili şu haklara sahipsiniz:</p>
+                        <ul style="margin-left: 20px;">
+                            <li>Bilgilerinize erişim ve kopyasını talep etme</li>
+                            <li>Yanlış bilgilerin düzeltilmesini isteme</li>
+                            <li>Verilerin silinmesini talep etme</li>
+                            <li>İşlemeye itiraz etme</li>
+                            <li>Veri taşınabilirliği</li>
+                        </ul>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">8. İletişim</h3>
+                        <p>Gizlilik politikamız hakkında sorularınız için:</p>
+                        <p><strong>E-posta:</strong> info@sporcum.co<br>
+                        <strong>Telefon:</strong> 036 363 00 63</p>
+                    </div>
+                `,
+                kvkk: `
+                    <h2 style="color: #1e293b; margin-bottom: 20px;">KVKK Aydınlatma Metni</h2>
+                    <div style="color: #475569; line-height: 1.8;">
+                        <p><strong>6698 Sayılı Kişisel Verilerin Korunması Kanunu Kapsamında Aydınlatma Metni</strong></p>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">1. Veri Sorumlusu</h3>
+                        <p>Sporcum Teknoloji A.Ş. olarak, 6698 sayılı Kişisel Verilerin Korunması Kanunu ("KVKK") uyarınca veri sorumlusuyuz.</p>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">2. Kişisel Verilerin İşlenme Amacı</h3>
+                        <p>Kişisel verileriniz aşağıdaki amaçlarla işlenmektedir:</p>
+                        <ul style="margin-left: 20px;">
+                            <li>Spor kulübü yönetim hizmetlerinin sunulması</li>
+                            <li>Sözleşme süreçlerinin yürütülmesi</li>
+                            <li>Müşteri ilişkileri yönetimi</li>
+                            <li>Ödeme işlemlerinin gerçekleştirilmesi</li>
+                            <li>İletişim faaliyetlerinin yürütülmesi</li>
+                            <li>Yasal yükümlülüklerin yerine getirilmesi</li>
+                            <li>Hizmet kalitesinin artırılması</li>
+                        </ul>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">3. İşlenen Kişisel Veriler</h3>
+                        <p>İşlediğimiz kişisel veri kategorileri:</p>
+                        <ul style="margin-left: 20px;">
+                            <li><strong>Kimlik Bilgileri:</strong> Ad, soyad, TC kimlik numarası, doğum tarihi</li>
+                            <li><strong>İletişim Bilgileri:</strong> Telefon, e-posta, adres</li>
+                            <li><strong>Müşteri İşlem Bilgileri:</strong> Üyelik bilgileri, ödeme kayıtları</li>
+                            <li><strong>Finansal Bilgiler:</strong> Banka hesap bilgileri, fatura bilgileri</li>
+                            <li><strong>İşlem Güvenliği Bilgileri:</strong> IP adresi, çerez kayıtları</li>
+                        </ul>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">4. Kişisel Verilerin Aktarılması</h3>
+                        <p>Kişisel verileriniz, KVKK'nın 8. ve 9. maddelerinde belirtilen şartlar çerçevesinde:</p>
+                        <ul style="margin-left: 20px;">
+                            <li>Hizmet sağlayıcılara (bulut hizmetleri, ödeme sistemleri)</li>
+                            <li>İş ortaklarımıza</li>
+                            <li>Yasal yükümlülükler çerçevesinde kamu kurumlarına</li>
+                        </ul>
+                        <p>aktarılabilmektedir.</p>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">5. Veri Toplama Yöntemi</h3>
+                        <p>Kişisel verileriniz elektronik ve fiziksel ortamlarda toplanmaktadır:</p>
+                        <ul style="margin-left: 20px;">
+                            <li>Web sitesi ve mobil uygulama üzerinden</li>
+                            <li>Sözleşme ve formlar aracılığıyla</li>
+                            <li>E-posta ve telefon ile yapılan iletişimde</li>
+                            <li>Ödeme sistemleri üzerinden</li>
+                        </ul>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">6. Kişisel Veri Sahibinin Hakları</h3>
+                        <p>KVKK'nın 11. maddesi kapsamında sahip olduğunuz haklar:</p>
+                        <ul style="margin-left: 20px;">
+                            <li>Kişisel verilerinizin işlenip işlenmediğini öğrenme</li>
+                            <li>İşlenmişse bilgi talep etme</li>
+                            <li>İşlenme amacını ve amaca uygun kullanılıp kullanılmadığını öğrenme</li>
+                            <li>Yurt içinde/yurt dışında aktarılan üçüncü kişileri bilme</li>
+                            <li>Eksik veya yanlış işlenmişse düzeltilmesini isteme</li>
+                            <li>KVKK'nın 7. maddesinde öngörülen şartlar çerçevesinde silinmesini/yok edilmesini isteme</li>
+                            <li>Aktarılan üçüncü kişilere yukarıdaki işlemlerin bildirilmesini isteme</li>
+                            <li>Münhasıran otomatik sistemler ile analiz edilmesi nedeniyle aleyhinize bir sonuç doğmasına itiraz etme</li>
+                            <li>Kanuna aykırı işleme nedeniyle zarara uğramanız halinde zararın giderilmesini talep etme</li>
+                        </ul>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">7. Başvuru Yöntemi</h3>
+                        <p>Haklarınızı kullanmak için başvurunuzu aşağıdaki yöntemlerle iletebilirsiniz:</p>
+                        <ul style="margin-left: 20px;">
+                            <li><strong>E-posta:</strong> kvkk@sporcum.co</li>
+                            <li><strong>Posta:</strong> Sporcum Teknoloji A.Ş. KVKK Birimi</li>
+                            <li><strong>Telefon:</strong> 036 363 00 63</li>
+                        </ul>
+                        <p>Başvurularınız en geç 30 gün içinde ücretsiz olarak sonuçlandırılacaktır.</p>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">8. Veri Saklama Süreleri</h3>
+                        <p>Kişisel verileriniz, işleme amacının gerektirdiği süre ve yasal saklama yükümlülükleri boyunca saklanmaktadır. Bu süreler sona erdiğinde verileriniz silinir, yok edilir veya anonim hale getirilir.</p>
+                    </div>
+                `,
+                terms: `
+                    <h2 style="color: #1e293b; margin-bottom: 20px;">Kullanım Koşulları</h2>
+                    <div style="color: #475569; line-height: 1.8;">
+                        <p><strong>Son Güncelleme: 13 Kasım 2025</strong></p>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">1. Hizmet Tanımı</h3>
+                        <p>Sporcum, spor kulüpleri için üye yönetimi, ödeme takibi, devamsızlık kontrolü ve iletişim araçları sunan bir yazılım hizmetidir.</p>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">2. Kabul ve Onay</h3>
+                        <p>Hizmetimizi kullanarak bu kullanım koşullarını kabul etmiş sayılırsınız. Koşulları kabul etmiyorsanız hizmeti kullanmamalısınız.</p>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">3. Hesap Güvenliği</h3>
+                        <ul style="margin-left: 20px;">
+                            <li>Hesap bilgilerinizin güvenliğinden siz sorumlusunuz</li>
+                            <li>Şifrenizi kimseyle paylaşmamalısınız</li>
+                            <li>Yetkisiz erişim tespit ederseniz derhal bize bildirmelisiniz</li>
+                            <li>Hesabınızda gerçekleşen tüm aktivitelerden sorumlusunuz</li>
+                        </ul>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">4. Kullanım Kuralları</h3>
+                        <p>Hizmeti kullanırken aşağıdaki eylemleri yapmamayı kabul edersiniz:</p>
+                        <ul style="margin-left: 20px;">
+                            <li>Yasadışı veya yetkisiz amaçlarla kullanmak</li>
+                            <li>Başkalarının haklarını ihlal etmek</li>
+                            <li>Sisteme zarar verebilecek yazılımlar kullanmak</li>
+                            <li>Diğer kullanıcıların verilerine yetkisiz erişim sağlamak</li>
+                            <li>Hizmeti tersine mühendislik yapmak</li>
+                        </ul>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">5. Fikri Mülkiyet Hakları</h3>
+                        <p>Sporcum platformu ve tüm içeriği (tasarım, yazılım, logolar, metinler) Sporcum Teknoloji A.Ş.'nin mülkiyetindedir ve telif hakkı yasalarıyla korunmaktadır.</p>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">6. Hizmet Değişiklikleri</h3>
+                        <p>Sporcum, önceden haber vermeksizin:</p>
+                        <ul style="margin-left: 20px;">
+                            <li>Hizmetleri değiştirme veya durdurma</li>
+                            <li>Fiyatlandırmayı güncelleme</li>
+                            <li>Özellik ekleme veya çıkarma</li>
+                        </ul>
+                        <p>hakkını saklı tutar.</p>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">7. Ödeme ve Faturalandırma</h3>
+                        <ul style="margin-left: 20px;">
+                            <li>Abonelik ücretleri seçtiğiniz pakete göre belirlenir</li>
+                            <li>Ödemeler aylık veya yıllık olarak yapılabilir</li>
+                            <li>Fiyatlar KDV hariçtir</li>
+                            <li>Ödeme yapılmaması durumunda hesabınız askıya alınabilir</li>
+                            <li>İade politikası ayrı olarak belirtilmiştir</li>
+                        </ul>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">8. Hizmet Sürekliliği</h3>
+                        <p>Hizmeti kesintisiz sunmaya çalışsak da, bakım, güncelleme veya teknik sorunlar nedeniyle kesintiler yaşanabilir. Bu durumlardan kaynaklanan zararlardan sorumlu değiliz.</p>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">9. Sorumluluk Sınırlaması</h3>
+                        <p>Sporcum:</p>
+                        <ul style="margin-left: 20px;">
+                            <li>Kullanıcı hatalarından kaynaklanan veri kayıplarından</li>
+                            <li>Üçüncü taraf hizmetlerindeki aksaklıklardan</li>
+                            <li>İnternet bağlantı sorunlarından</li>
+                            <li>Dolaylı veya arızi zararlardan</li>
+                        </ul>
+                        <p>sorumlu tutulamaz.</p>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">10. Veri Yedekleme</h3>
+                        <p>Verilerinizi düzenli olarak yedekliyoruz, ancak kendi yedeğinizi de almanızı öneririz. Veri kaybı durumunda sorumluluğumuz sınırlıdır.</p>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">11. Hesap İptali</h3>
+                        <p>Hesabınızı dilediğiniz zaman iptal edebilirsiniz. İptal sonrası verileriniz yasal saklama süreleri dışında silinir. Ödenen ücretler iade edilmez.</p>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">12. Uygulanacak Hukuk</h3>
+                        <p>Bu sözleşme Türkiye Cumhuriyeti yasalarına tabidir. Anlaşmazlıklar Samsun mahkeme ve icra dairelerinde çözümlenir.</p>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">13. İletişim</h3>
+                        <p>Kullanım koşulları hakkında sorularınız için:</p>
+                        <p><strong>E-posta:</strong> info@sporcum.co<br>
+                        <strong>Telefon:</strong> 036 363 00 63<br>
+                        <strong>Adres:</strong> Samsun, Türkiye</p>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">14. Değişiklikler</h3>
+                        <p>Bu kullanım koşulları zaman zaman güncellenebilir. Önemli değişiklikler e-posta ile bildirilir. Değişiklikler sonrası hizmeti kullanmaya devam etmeniz yeni koşulları kabul ettiğiniz anlamına gelir.</p>
+                    </div>
+                `
+            };
+            
+            content.innerHTML = legalTexts[type];
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeLegalModal() {
+            document.getElementById('legalModal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+
+        // Close modal on outside click
+        document.getElementById('legalModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeLegalModal();
+            }
+        });
+
+        // Close modal on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeLegalModal();
+                closeInfoModal();
+            }
+        });
+
+        // Bilgilendirme Modal Fonksiyonları
+        function showInfoModal() {
+            const modal = document.getElementById('infoModal');
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden'; // Sayfa scroll'unu engelle
+        }
+
+        function closeInfoModal() {
+            const modal = document.getElementById('infoModal');
+            modal.classList.add('hidden');
+            document.body.style.overflow = 'auto'; // Sayfa scroll'unu geri aç
+        }
+
+        // Modal dışına tıklanınca kapat
+        document.getElementById('infoModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeInfoModal();
+            }
+        });
+
+        // Sayfa yüklendiğinde modalı her zaman göster
+        window.addEventListener('load', function() {
+            // 500ms gecikme ile modal aç (sayfa render tamamlansın)
+            setTimeout(showInfoModal, 500);
+        });
+
+        // Scroll to section helper (modal'dan kullanılıyor)
+        function scrollToSection(event, sectionId) {
+            event.preventDefault();
+            const element = document.getElementById(sectionId);
+            if (element) {
+                element.scrollIntoView({ 
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }
         }
     </script>
 </body>

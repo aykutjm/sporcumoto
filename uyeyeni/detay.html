@@ -37,6 +37,7 @@
             --dark-bg: #0f172a;
             --card-bg: #1e293b;
             --text-light: #e2e8f0;
+            --text-secondary: #94a3b8;
             --success-color: #10b981;
             --warning-color: #f59e0b;
             --danger-color: #ef4444;
@@ -80,6 +81,7 @@
             font-size: 80px;
             margin-bottom: 20px;
             animation: bounce 2s ease-in-out infinite;
+            transition: opacity 0.3s ease;
         }
 
         @keyframes bounce {
@@ -162,7 +164,7 @@
         .section-subtitle {
             text-align: center;
             font-size: 18px;
-            color: #94a3b8;
+            color: var(--text-secondary);
             margin-top: -30px;
             margin-bottom: 40px;
         }
@@ -222,7 +224,7 @@
         }
 
         .feature-description {
-            color: #94a3b8;
+            color: var(--text-secondary);
             font-size: 15px;
             line-height: 1.7;
         }
@@ -854,11 +856,11 @@
     <!-- Header -->
     <div class="header">
         <div class="header-content">
-            <div class="logo">🎾</div>
+            <div class="logo" id="animatedLogo">🎾</div>
             <h1>Sporcum</h1>
             <p>Spor Kulüplerinin Dijital Dönüşüm Platformu</p>
             <div class="cta-buttons">
-                <a href="admin.html" class="btn-cta btn-primary-cta">🚀 Hemen Başla</a>
+                <a href="#showcase" class="btn-cta btn-primary-cta">🚀 Hemen Başla</a>
                 <a href="#features" class="btn-cta btn-secondary-cta">📋 Özellikleri Keşfet</a>
             </div>
         </div>
@@ -1028,7 +1030,7 @@
         </div>
 
         <!-- Interactive Showcase -->
-        <h2 class="section-title">🎮 Canlı Demo</h2>
+        <h2 class="section-title" id="showcase">🎮 Canlı Demo</h2>
         <p class="section-subtitle">Sistemin özelliklerini keşfedin</p>
 
         <div class="showcase reveal">
@@ -1036,7 +1038,6 @@
                 <button class="showcase-tab active" onclick="switchTab('dashboard')">📊 Dashboard</button>
                 <button class="showcase-tab" onclick="switchTab('members')">👥 Üyeler</button>
                 <button class="showcase-tab" onclick="switchTab('payments')">💰 Ödemeler</button>
-                <button class="showcase-tab" onclick="switchTab('whatsapp')">📱 WhatsApp</button>
                 <button class="showcase-tab" onclick="switchTab('crm')">🎯 CRM</button>
                 <button class="showcase-tab" onclick="switchTab('reports')">📈 Raporlar</button>
             </div>
@@ -1214,63 +1215,6 @@
                             </tr>
                         </tbody>
                     </table>
-                </div>
-            </div>
-
-            <!-- WhatsApp Demo -->
-            <div id="whatsapp" class="showcase-content">
-                <div class="demo-interface">
-                    <div class="demo-header">
-                        <h3>📱 WhatsApp Mesajlaşma</h3>
-                        <button style="background: white; color: var(--primary-color); padding: 10px 20px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">📨 Toplu Mesaj Gönder</button>
-                    </div>
-
-                    <div class="demo-stats">
-                        <div class="stat-card">
-                            <div class="stat-icon">📤</div>
-                            <div class="stat-value">1,247</div>
-                            <div class="stat-label">Gönderilen</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-icon">✅</div>
-                            <div class="stat-value">1,189</div>
-                            <div class="stat-label">Teslim Edilen</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-icon">👁️</div>
-                            <div class="stat-value">892</div>
-                            <div class="stat-label">Okunan</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-icon">📈</div>
-                            <div class="stat-value">%95</div>
-                            <div class="stat-label">Başarı Oranı</div>
-                        </div>
-                    </div>
-
-                    <div style="background: rgba(255, 255, 255, 0.05); padding: 30px; border-radius: 12px; margin-top: 20px;">
-                        <h4 style="margin-bottom: 20px;">💬 Mesaj Şablonları</h4>
-                        <div class="message-animation">
-                            <div class="message-bubble">
-                                <strong>🎉 Hoş Geldin Mesajı</strong>
-                                <p style="margin-top: 10px; font-size: 14px; color: #cbd5e1;">
-                                    Merhaba [Ad Soyad]! Kulübümüze hoş geldin...
-                                </p>
-                            </div>
-                            <div class="message-bubble">
-                                <strong>💰 Ödeme Hatırlatma</strong>
-                                <p style="margin-top: 10px; font-size: 14px; color: #cbd5e1;">
-                                    Değerli üyemiz, [Tarih] tarihli ödemeniz...
-                                </p>
-                            </div>
-                            <div class="message-bubble">
-                                <strong>🎂 Doğum Günü</strong>
-                                <p style="margin-top: 10px; font-size: 14px; color: #cbd5e1;">
-                                    Doğum gününüz kutlu olsun [Ad Soyad]! 🎉
-                                </p>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
 
@@ -1633,32 +1577,39 @@
                 <h3>Özellikler</h3>
                 <a href="#features">Üye Yönetimi</a>
                 <a href="#features">Ödeme Takibi</a>
-                <a href="#features">WhatsApp</a>
                 <a href="#features">CRM</a>
                 <a href="#features">Raporlama</a>
+                <a href="#features">Grup Yönetimi</a>
             </div>
 
             <div class="footer-section">
-                <h3>Kaynaklar</h3>
-                <a href="#">Dokümantasyon</a>
-                <a href="#">Video Eğitimler</a>
-                <a href="#">SSS</a>
-                <a href="#">Blog</a>
-                <a href="#">API</a>
-            </div>
-
-            <div class="footer-section">
-                <h3>Şirket</h3>
-                <a href="#">Hakkımızda</a>
-                <a href="#">İletişim</a>
-                <a href="#">Gizlilik Politikası</a>
-                <a href="#">Kullanım Koşulları</a>
-                <a href="#">Kariyer</a>
+                <h3>Bizi Takip Edin</h3>
+                <a href="https://www.instagram.com/wao_tr" target="_blank" style="display: flex; align-items: center; gap: 8px;">
+                    <span>📷</span> Instagram
+                </a>
+                <p style="margin-top: 20px; font-size: 14px; opacity: 0.8;">
+                    Spor kulüplerinin dijital dönüşüm yolculuğunda güvenilir iş ortağınız.
+                </p>
             </div>
         </div>
 
         <div class="footer-bottom">
             <p>&copy; 2024 Sporcum. Tüm hakları saklıdır. Made with ❤️ for sports clubs</p>
+            <div style="margin-top: 10px;">
+                <a href="#" onclick="showLegalModal('privacy')" style="margin: 0 10px; color: rgba(255,255,255,0.7); text-decoration: none; font-size: 14px;">Gizlilik Politikası</a>
+                <span style="color: rgba(255,255,255,0.5);">|</span>
+                <a href="#" onclick="showLegalModal('kvkk')" style="margin: 0 10px; color: rgba(255,255,255,0.7); text-decoration: none; font-size: 14px;">KVKK</a>
+                <span style="color: rgba(255,255,255,0.5);">|</span>
+                <a href="#" onclick="showLegalModal('terms')" style="margin: 0 10px; color: rgba(255,255,255,0.7); text-decoration: none; font-size: 14px;">Kullanım Koşulları</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Legal Modals -->
+    <div id="legalModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; overflow-y: auto;">
+        <div style="max-width: 900px; margin: 50px auto; background: white; border-radius: 16px; padding: 40px; position: relative;">
+            <button onclick="closeLegalModal()" style="position: absolute; top: 20px; right: 20px; background: none; border: none; font-size: 28px; cursor: pointer; color: #64748b;">&times;</button>
+            <div id="legalContent"></div>
         </div>
     </div>
 
@@ -1666,6 +1617,40 @@
     <div class="scroll-top" id="scrollTop">
         <span style="font-size: 24px;">↑</span>
     </div>
+
+    <!-- WhatsApp Floating Button -->
+    <a href="https://wa.me/903623630063" target="_blank" id="whatsapp-button" style="position: fixed; bottom: 80px; right: 30px; background: #25D366; color: white; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(37, 211, 102, 0.4); z-index: 999; transition: all 0.3s ease; text-decoration: none; animation: pulse-whatsapp 2s infinite;">
+        <svg style="width: 32px; height: 32px;" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+        </svg>
+        <span style="position: absolute; right: 70px; background: #1e293b; color: white; padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: 600; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;" id="whatsapp-tooltip">WhatsApp'tan Yazın</span>
+    </a>
+
+    <style>
+        @keyframes pulse-whatsapp {
+            0% {
+                transform: scale(1);
+                box-shadow: 0 4px 12px rgba(37, 211, 102, 0.4);
+            }
+            50% {
+                transform: scale(1.05);
+                box-shadow: 0 6px 20px rgba(37, 211, 102, 0.6);
+            }
+            100% {
+                transform: scale(1);
+                box-shadow: 0 4px 12px rgba(37, 211, 102, 0.4);
+            }
+        }
+        
+        #whatsapp-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(37, 211, 102, 0.6);
+        }
+        
+        #whatsapp-button:hover #whatsapp-tooltip {
+            opacity: 1;
+        }
+    </style>
 
     <script>
         // Demo Request Form Handler
@@ -1779,6 +1764,20 @@
         window.addEventListener('scroll', reveal);
         reveal(); // Initial check
 
+        // Animated sports icons in header
+        const sportIcons = ['⚽', '🏀', '🎾', '🏐', '⚾', '🏈', '🏓', '🏸', '🥊', '🥋', '💪', '🏋️', '🤸', '🏊'];
+        const logoElement = document.getElementById('animatedLogo');
+        let iconIndex = 0;
+
+        setInterval(() => {
+            logoElement.style.opacity = '0';
+            setTimeout(() => {
+                iconIndex = (iconIndex + 1) % sportIcons.length;
+                logoElement.textContent = sportIcons[iconIndex];
+                logoElement.style.opacity = '1';
+            }, 300);
+        }, 2000);
+
         // Scroll to top button
         const scrollTopBtn = document.getElementById('scrollTop');
         
@@ -1873,6 +1872,266 @@
         // Console message
         console.log('%c🎾 Sporcum - Spor Kulübü Yönetim Sistemi', 'background: linear-gradient(135deg, #667eea, #764ba2); color: white; font-size: 20px; font-weight: bold; padding: 10px 20px; border-radius: 5px;');
         console.log('%cDigital transformation for sports clubs 🚀', 'color: #667eea; font-size: 14px; font-weight: bold;');
+
+        // Legal Modal Functions
+        function showLegalModal(type) {
+            const modal = document.getElementById('legalModal');
+            const content = document.getElementById('legalContent');
+            
+            const legalTexts = {
+                privacy: `
+                    <h2 style="color: #1e293b; margin-bottom: 20px;">Gizlilik Politikası</h2>
+                    <div style="color: #475569; line-height: 1.8;">
+                        <p><strong>Son Güncelleme: 13 Kasım 2025</strong></p>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">1. Giriş</h3>
+                        <p>Sporcum olarak, kullanıcılarımızın gizliliğine saygı duyuyor ve kişisel verilerinizi korumayı taahhüt ediyoruz. Bu Gizlilik Politikası, topladığımız bilgileri, bu bilgileri nasıl kullandığımızı ve haklarınızı açıklamaktadır.</p>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">2. Toplanan Bilgiler</h3>
+                        <p>Hizmetlerimizi kullanırken aşağıdaki bilgileri toplayabiliriz:</p>
+                        <ul style="margin-left: 20px;">
+                            <li>Ad, soyad ve iletişim bilgileri</li>
+                            <li>Spor kulübü bilgileri ve üyelik detayları</li>
+                            <li>Ödeme ve fatura bilgileri</li>
+                            <li>Kullanım verileri ve tercihler</li>
+                            <li>IP adresi ve cihaz bilgileri</li>
+                        </ul>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">3. Bilgilerin Kullanımı</h3>
+                        <p>Topladığımız bilgileri şu amaçlarla kullanırız:</p>
+                        <ul style="margin-left: 20px;">
+                            <li>Hizmetlerimizi sağlamak ve geliştirmek</li>
+                            <li>Müşteri desteği sunmak</li>
+                            <li>Ödemeleri işlemek</li>
+                            <li>Güvenlik ve dolandırıcılık önleme</li>
+                            <li>Yasal yükümlülükleri yerine getirmek</li>
+                        </ul>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">4. Veri Güvenliği</h3>
+                        <p>Verilerinizi korumak için endüstri standardı güvenlik önlemleri kullanıyoruz. Tüm veriler şifreli olarak saklanır ve yetkisiz erişime karşı korunur.</p>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">5. Çerezler</h3>
+                        <p>Web sitemiz, kullanıcı deneyimini geliştirmek için çerezler kullanır. Tarayıcı ayarlarınızdan çerezleri yönetebilirsiniz.</p>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">6. Üçüncü Taraf Paylaşımı</h3>
+                        <p>Kişisel verilerinizi, yasal zorunluluklar dışında üçüncü taraflarla paylaşmayız. Hizmet sağlayıcılarımız, verilerinizi yalnızca bizim adımıza işlemek için kullanır.</p>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">7. Haklarınız</h3>
+                        <p>Kişisel verilerinizle ilgili şu haklara sahipsiniz:</p>
+                        <ul style="margin-left: 20px;">
+                            <li>Bilgilerinize erişim ve kopyasını talep etme</li>
+                            <li>Yanlış bilgilerin düzeltilmesini isteme</li>
+                            <li>Verilerin silinmesini talep etme</li>
+                            <li>İşlemeye itiraz etme</li>
+                            <li>Veri taşınabilirliği</li>
+                        </ul>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">8. İletişim</h3>
+                        <p>Gizlilik politikamız hakkında sorularınız için:</p>
+                        <p><strong>E-posta:</strong> info@sporcum.co<br>
+                        <strong>Telefon:</strong> 036 363 00 63</p>
+                    </div>
+                `,
+                kvkk: `
+                    <h2 style="color: #1e293b; margin-bottom: 20px;">KVKK Aydınlatma Metni</h2>
+                    <div style="color: #475569; line-height: 1.8;">
+                        <p><strong>6698 Sayılı Kişisel Verilerin Korunması Kanunu Kapsamında Aydınlatma Metni</strong></p>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">1. Veri Sorumlusu</h3>
+                        <p>Sporcum Teknoloji A.Ş. olarak, 6698 sayılı Kişisel Verilerin Korunması Kanunu ("KVKK") uyarınca veri sorumlusuyuz.</p>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">2. Kişisel Verilerin İşlenme Amacı</h3>
+                        <p>Kişisel verileriniz aşağıdaki amaçlarla işlenmektedir:</p>
+                        <ul style="margin-left: 20px;">
+                            <li>Spor kulübü yönetim hizmetlerinin sunulması</li>
+                            <li>Sözleşme süreçlerinin yürütülmesi</li>
+                            <li>Müşteri ilişkileri yönetimi</li>
+                            <li>Ödeme işlemlerinin gerçekleştirilmesi</li>
+                            <li>İletişim faaliyetlerinin yürütülmesi</li>
+                            <li>Yasal yükümlülüklerin yerine getirilmesi</li>
+                            <li>Hizmet kalitesinin artırılması</li>
+                        </ul>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">3. İşlenen Kişisel Veriler</h3>
+                        <p>İşlediğimiz kişisel veri kategorileri:</p>
+                        <ul style="margin-left: 20px;">
+                            <li><strong>Kimlik Bilgileri:</strong> Ad, soyad, TC kimlik numarası, doğum tarihi</li>
+                            <li><strong>İletişim Bilgileri:</strong> Telefon, e-posta, adres</li>
+                            <li><strong>Müşteri İşlem Bilgileri:</strong> Üyelik bilgileri, ödeme kayıtları</li>
+                            <li><strong>Finansal Bilgiler:</strong> Banka hesap bilgileri, fatura bilgileri</li>
+                            <li><strong>İşlem Güvenliği Bilgileri:</strong> IP adresi, çerez kayıtları</li>
+                        </ul>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">4. Kişisel Verilerin Aktarılması</h3>
+                        <p>Kişisel verileriniz, KVKK'nın 8. ve 9. maddelerinde belirtilen şartlar çerçevesinde:</p>
+                        <ul style="margin-left: 20px;">
+                            <li>Hizmet sağlayıcılara (bulut hizmetleri, ödeme sistemleri)</li>
+                            <li>İş ortaklarımıza</li>
+                            <li>Yasal yükümlülükler çerçevesinde kamu kurumlarına</li>
+                        </ul>
+                        <p>aktarılabilmektedir.</p>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">5. Veri Toplama Yöntemi</h3>
+                        <p>Kişisel verileriniz elektronik ve fiziksel ortamlarda toplanmaktadır:</p>
+                        <ul style="margin-left: 20px;">
+                            <li>Web sitesi ve mobil uygulama üzerinden</li>
+                            <li>Sözleşme ve formlar aracılığıyla</li>
+                            <li>E-posta ve telefon ile yapılan iletişimde</li>
+                            <li>Ödeme sistemleri üzerinden</li>
+                        </ul>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">6. Kişisel Veri Sahibinin Hakları</h3>
+                        <p>KVKK'nın 11. maddesi kapsamında sahip olduğunuz haklar:</p>
+                        <ul style="margin-left: 20px;">
+                            <li>Kişisel verilerinizin işlenip işlenmediğini öğrenme</li>
+                            <li>İşlenmişse bilgi talep etme</li>
+                            <li>İşlenme amacını ve amaca uygun kullanılıp kullanılmadığını öğrenme</li>
+                            <li>Yurt içinde/yurt dışında aktarılan üçüncü kişileri bilme</li>
+                            <li>Eksik veya yanlış işlenmişse düzeltilmesini isteme</li>
+                            <li>KVKK'nın 7. maddesinde öngörülen şartlar çerçevesinde silinmesini/yok edilmesini isteme</li>
+                            <li>Aktarılan üçüncü kişilere yukarıdaki işlemlerin bildirilmesini isteme</li>
+                            <li>Münhasıran otomatik sistemler ile analiz edilmesi nedeniyle aleyhinize bir sonuç doğmasına itiraz etme</li>
+                            <li>Kanuna aykırı işleme nedeniyle zarara uğramanız halinde zararın giderilmesini talep etme</li>
+                        </ul>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">7. Başvuru Yöntemi</h3>
+                        <p>Haklarınızı kullanmak için başvurunuzu aşağıdaki yöntemlerle iletebilirsiniz:</p>
+                        <ul style="margin-left: 20px;">
+                            <li><strong>E-posta:</strong> kvkk@sporcum.co</li>
+                            <li><strong>Posta:</strong> Sporcum Teknoloji A.Ş. KVKK Birimi</li>
+                            <li><strong>Telefon:</strong> 036 363 00 63</li>
+                        </ul>
+                        <p>Başvurularınız en geç 30 gün içinde ücretsiz olarak sonuçlandırılacaktır.</p>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">8. Veri Saklama Süreleri</h3>
+                        <p>Kişisel verileriniz, işleme amacının gerektirdiği süre ve yasal saklama yükümlülükleri boyunca saklanmaktadır. Bu süreler sona erdiğinde verileriniz silinir, yok edilir veya anonim hale getirilir.</p>
+                    </div>
+                `,
+                terms: `
+                    <h2 style="color: #1e293b; margin-bottom: 20px;">Kullanım Koşulları</h2>
+                    <div style="color: #475569; line-height: 1.8;">
+                        <p><strong>Son Güncelleme: 13 Kasım 2025</strong></p>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">1. Hizmet Tanımı</h3>
+                        <p>Sporcum, spor kulüpleri için üye yönetimi, ödeme takibi, devamsızlık kontrolü ve iletişim araçları sunan bir yazılım hizmetidir.</p>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">2. Kabul ve Onay</h3>
+                        <p>Hizmetimizi kullanarak bu kullanım koşullarını kabul etmiş sayılırsınız. Koşulları kabul etmiyorsanız hizmeti kullanmamalısınız.</p>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">3. Hesap Güvenliği</h3>
+                        <ul style="margin-left: 20px;">
+                            <li>Hesap bilgilerinizin güvenliğinden siz sorumlusunuz</li>
+                            <li>Şifrenizi kimseyle paylaşmamalısınız</li>
+                            <li>Yetkisiz erişim tespit ederseniz derhal bize bildirmelisiniz</li>
+                            <li>Hesabınızda gerçekleşen tüm aktivitelerden sorumlusunuz</li>
+                        </ul>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">4. Kullanım Kuralları</h3>
+                        <p>Hizmeti kullanırken aşağıdaki eylemleri yapmamayı kabul edersiniz:</p>
+                        <ul style="margin-left: 20px;">
+                            <li>Yasadışı veya yetkisiz amaçlarla kullanmak</li>
+                            <li>Başkalarının haklarını ihlal etmek</li>
+                            <li>Sisteme zarar verebilecek yazılımlar kullanmak</li>
+                            <li>Diğer kullanıcıların verilerine yetkisiz erişim sağlamak</li>
+                            <li>Hizmeti tersine mühendislik yapmak</li>
+                        </ul>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">5. Fikri Mülkiyet Hakları</h3>
+                        <p>Sporcum platformu ve tüm içeriği (tasarım, yazılım, logolar, metinler) Sporcum Teknoloji A.Ş.'nin mülkiyetindedir ve telif hakkı yasalarıyla korunmaktadır.</p>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">6. Hizmet Değişiklikleri</h3>
+                        <p>Sporcum, önceden haber vermeksizin:</p>
+                        <ul style="margin-left: 20px;">
+                            <li>Hizmetleri değiştirme veya durdurma</li>
+                            <li>Fiyatlandırmayı güncelleme</li>
+                            <li>Özellik ekleme veya çıkarma</li>
+                        </ul>
+                        <p>hakkını saklı tutar.</p>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">7. Ödeme ve Faturalandırma</h3>
+                        <ul style="margin-left: 20px;">
+                            <li>Abonelik ücretleri seçtiğiniz pakete göre belirlenir</li>
+                            <li>Ödemeler aylık veya yıllık olarak yapılabilir</li>
+                            <li>Fiyatlar KDV hariçtir</li>
+                            <li>Ödeme yapılmaması durumunda hesabınız askıya alınabilir</li>
+                            <li>İade politikası ayrı olarak belirtilmiştir</li>
+                        </ul>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">8. Hizmet Sürekliliği</h3>
+                        <p>Hizmeti kesintisiz sunmaya çalışsak da, bakım, güncelleme veya teknik sorunlar nedeniyle kesintiler yaşanabilir. Bu durumlardan kaynaklanan zararlardan sorumlu değiliz.</p>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">9. Sorumluluk Sınırlaması</h3>
+                        <p>Sporcum:</p>
+                        <ul style="margin-left: 20px;">
+                            <li>Kullanıcı hatalarından kaynaklanan veri kayıplarından</li>
+                            <li>Üçüncü taraf hizmetlerindeki aksaklıklardan</li>
+                            <li>İnternet bağlantı sorunlarından</li>
+                            <li>Dolaylı veya arızi zararlardan</li>
+                        </ul>
+                        <p>sorumlu tutulamaz.</p>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">10. Veri Yedekleme</h3>
+                        <p>Verilerinizi düzenli olarak yedekliyoruz, ancak kendi yedeğinizi de almanızı öneririz. Veri kaybı durumunda sorumluluğumuz sınırlıdır.</p>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">11. Hesap İptali</h3>
+                        <p>Hesabınızı dilediğiniz zaman iptal edebilirsiniz. İptal sonrası verileriniz yasal saklama süreleri dışında silinir. Ödenen ücretler iade edilmez.</p>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">12. Uygulanacak Hukuk</h3>
+                        <p>Bu sözleşme Türkiye Cumhuriyeti yasalarına tabidir. Anlaşmazlıklar Samsun mahkeme ve icra dairelerinde çözümlenir.</p>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">13. İletişim</h3>
+                        <p>Kullanım koşulları hakkında sorularınız için:</p>
+                        <p><strong>E-posta:</strong> info@sporcum.co<br>
+                        <strong>Telefon:</strong> 036 363 00 63<br>
+                        <strong>Adres:</strong> Samsun, Türkiye</p>
+                        
+                        <h3 style="color: #334155; margin-top: 30px;">14. Değişiklikler</h3>
+                        <p>Bu kullanım koşulları zaman zaman güncellenebilir. Önemli değişiklikler e-posta ile bildirilir. Değişiklikler sonrası hizmeti kullanmaya devam etmeniz yeni koşulları kabul ettiğiniz anlamına gelir.</p>
+                    </div>
+                `
+            };
+            
+            content.innerHTML = legalTexts[type];
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+            return false;
+        }
+
+        function closeLegalModal() {
+            document.getElementById('legalModal').style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
+        // Close modal on outside click
+        document.getElementById('legalModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeLegalModal();
+            }
+        });
+
+        // WhatsApp button scroll animation
+        let lastScrollTop = 0;
+        const whatsappBtn = document.getElementById('whatsapp-button');
+        
+        window.addEventListener('scroll', function() {
+            let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            
+            if (scrollTop > lastScrollTop) {
+                // Scrolling down
+                whatsappBtn.style.transform = 'translateY(-10px) scale(1)';
+            } else {
+                // Scrolling up
+                whatsappBtn.style.transform = 'translateY(10px) scale(1)';
+            }
+            
+            lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
+            
+            // Reset position after scroll stops
+            clearTimeout(window.scrollEndTimer);
+            window.scrollEndTimer = setTimeout(() => {
+                whatsappBtn.style.transform = 'translateY(0) scale(1)';
+            }, 150);
+        });
     </script>
 </body>
 </html>

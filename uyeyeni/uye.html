@@ -8,7 +8,203 @@
     
     <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="supabase-helper.js"></script>
+    
+    <!-- Supabase Helper (Inline) -->
+    <script>
+        /**
+         * Supabase Helper Library - Inline Version
+         * Firebase API'sini taklit eden wrapper fonksiyonlar
+         */
+        let supabaseClient = null;
+        let currentUser = null;
+        let currentClubId = null;
+
+        function initSupabase(url, anonKey) {
+            supabaseClient = window.supabase.createClient(url, anonKey);
+            return supabaseClient;
+        }
+
+        const auth = {
+            async signInWithEmailAndPassword(email, password) {
+                const { data, error } = await supabaseClient.auth.signInWithPassword({
+                    email,
+                    password
+                });
+                if (error) throw error;
+                currentUser = data.user;
+                return { user: data.user };
+            },
+            
+            async signOut() {
+                const { error } = await supabaseClient.auth.signOut();
+                if (error) throw error;
+                currentUser = null;
+            },
+            
+            async onAuthStateChanged(callback) {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (session) {
+                    currentUser = session.user;
+                    callback(session.user);
+                }
+                
+                const { data: authListener } = supabaseClient.auth.onAuthStateChange(
+                    (event, session) => {
+                        currentUser = session?.user || null;
+                        callback(session?.user || null);
+                    }
+                );
+                
+                return authListener;
+            },
+            
+            async getCurrentUser() {
+                const { data: { user } } = await supabaseClient.auth.getUser();
+                currentUser = user;
+                return user;
+            }
+        };
+
+        const db = {
+            collection(tableName) {
+                return {
+                    tableName,
+                    query: supabaseClient.from(tableName)
+                };
+            },
+            
+            async getDocs(collectionRef, queryOptions = {}) {
+                let query = supabaseClient.from(collectionRef.tableName).select('*');
+                
+                if (queryOptions.where) {
+                    for (const condition of queryOptions.where) {
+                        const [field, operator, value] = condition;
+                        switch (operator) {
+                            case '==':
+                                query = query.eq(field, value);
+                                break;
+                            case '!=':
+                                query = query.neq(field, value);
+                                break;
+                            case '>':
+                                query = query.gt(field, value);
+                                break;
+                            case '>=':
+                                query = query.gte(field, value);
+                                break;
+                            case '<':
+                                query = query.lt(field, value);
+                                break;
+                            case '<=':
+                                query = query.lte(field, value);
+                                break;
+                            case 'in':
+                                query = query.in(field, value);
+                                break;
+                            case 'array-contains':
+                                query = query.contains(field, [value]);
+                                break;
+                        }
+                    }
+                }
+                
+                if (queryOptions.orderBy) {
+                    const [field, direction = 'asc'] = queryOptions.orderBy;
+                    query = query.order(field, { ascending: direction === 'asc' });
+                }
+                
+                if (queryOptions.limit) {
+                    query = query.limit(queryOptions.limit);
+                }
+                
+                const { data, error } = await query;
+                
+                if (error) throw error;
+                
+                const docs = data.map(doc => ({
+                    id: doc.id,
+                    data: () => doc,
+                    exists: () => true
+                }));
+                
+                return {
+                    docs: docs,
+                    size: data.length,
+                    empty: data.length === 0,
+                    docChanges: () => docs.map(doc => ({
+                        type: 'added',
+                        doc: doc
+                    }))
+                };
+            },
+            
+            async getDoc(docRef) {
+                const { data, error } = await supabaseClient
+                    .from(docRef.tableName)
+                    .select('*')
+                    .eq('id', docRef.id)
+                    .maybeSingle();
+                
+                if (error) throw error;
+                
+                return {
+                    id: docRef.id,
+                    data: () => data || {},
+                    exists: () => !!data
+                };
+            },
+            
+            doc(tableName, id) {
+                return {
+                    tableName,
+                    id
+                };
+            },
+            
+            query(collectionRef, ...conditions) {
+                const queryOptions = { where: [], orderBy: null, limit: null };
+                
+                conditions.forEach(condition => {
+                    if (condition.type === 'where') {
+                        queryOptions.where.push([condition.field, condition.operator, condition.value]);
+                    } else if (condition.type === 'orderBy') {
+                        queryOptions.orderBy = [condition.field, condition.direction];
+                    } else if (condition.type === 'limit') {
+                        queryOptions.limit = condition.value;
+                    }
+                });
+                
+                return {
+                    ...collectionRef,
+                    queryOptions
+                };
+            }
+        };
+
+        function where(field, operator, value) {
+            return { type: 'where', field, operator, value };
+        }
+
+        function orderBy(field, direction = 'asc') {
+            return { type: 'orderBy', field, direction };
+        }
+
+        function limit(value) {
+            return { type: 'limit', value };
+        }
+
+        window.supabaseHelper = {
+            initSupabase,
+            auth,
+            db,
+            where,
+            orderBy,
+            limit
+        };
+        
+        console.log('🚀 INLINE SUPABASE HELPER YÜKLENDI!');
+    </script>
+    
     <script type="module">
         // --- IMPORTANT: Supabase Configuration ---
         const SUPABASE_URL = 'https://supabase.edu-ai.online';
@@ -16,8 +212,8 @@
         
         // Initialize Supabase
         const supabase = window.supabaseHelper.initSupabase(SUPABASE_URL, SUPABASE_ANON_KEY);
-        const auth = window.supabaseHelper.auth;
-        const db = window.supabaseHelper.db;
+        // const auth = window.supabaseHelper.auth; // Zaten inline helper'da tanımlı (line 27)
+        // const db = window.supabaseHelper.db; // Zaten inline helper'da tanımlı (line 68)
         
         // Make available globally
         window.supabase = supabase;
@@ -581,9 +777,8 @@
                                 <table class="data-table">
                                     <thead>
                                         <tr>
-                                            <th style="width: 50%;">Tarih</th>
-                                            <th style="width: 20%; text-align: center;">Durum</th>
-                                            <th style="width: 30%;">Devamsızlık Sebebi</th>
+                                            <th style="width: 70%;">Tarih</th>
+                                            <th style="width: 30%; text-align: center;">Durum</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -598,23 +793,10 @@
                                             const statusClass = record.status === 'present' ? 'status-present' : 'status-absent';
                                             const statusText = record.status === 'present' ? '✅ Katıldı' : '❌ Katılmadı';
                                             
-                                            // Devamsızlık sebebi
-                                            let reasonCell = '';
-                                            if (record.status === 'absent') {
-                                                if (record.reason && record.reason.trim()) {
-                                                    reasonCell = `<td><span style="color: #666; font-style: italic;">${record.reason}</span></td>`;
-                                                } else {
-                                                    reasonCell = `<td><span style="color: #999;">Sebep belirtilmedi</span></td>`;
-                                                }
-                                            } else {
-                                                reasonCell = `<td style="text-align: center; color: #ccc;">-</td>`;
-                                            }
-                                            
                                             return `
                                                 <tr>
                                                     <td><strong>${formattedDate}</strong></td>
                                                     <td style="text-align: center;"><span class="status-badge ${statusClass}">${statusText}</span></td>
-                                                    ${reasonCell}
                                                 </tr>
                                             `;
                                         }).join('')}
@@ -1435,7 +1617,7 @@
             </div>
             
             <!-- Footer -->
-            <div style="text-center mt-6 text-white text-sm margin-top: 20px; text-align: center; color: rgba(255,255,255,0.8);">
+            <div style="margin-top: 20px; text-align: center; color: rgba(255,255,255,0.8); font-size: 14px;">
                 <p>&copy; 2024 Sporcum Teknoloji A.Ş.</p>
             </div>
         </div>

@@ -8,21 +8,187 @@
     
     <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="supabase-helper.js"></script>
+    <script>
+        // ✅ INLINE SUPABASE HELPER - CACHE SORUNU ÇÖZÜMÜ
+        console.log('%c🚀 INLINE SUPABASE HELPER YÜKLENDI!', 'background: #00ff00; color: #000; font-size: 20px; font-weight: bold; padding: 10px;');
+        
+        let supabaseClient = null;
+        let currentUser = null;
+        window.currentClubId = null;
+
+        function initSupabase(url, anonKey) {
+            supabaseClient = window.supabase.createClient(url, anonKey);
+            return supabaseClient;
+        }
+
+        const auth = {
+            async signInWithEmailAndPassword(email, password) {
+                const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+                if (error) throw error;
+                currentUser = data.user;
+                return { user: data.user };
+            },
+            async signOut() {
+                const { error } = await supabaseClient.auth.signOut();
+                if (error) throw error;
+                currentUser = null;
+            },
+            async onAuthStateChanged(callback) {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (session) {
+                    currentUser = session.user;
+                    callback(session.user);
+                }
+                const { data: authListener } = supabaseClient.auth.onAuthStateChange((event, session) => {
+                    currentUser = session?.user || null;
+                    callback(session?.user || null);
+                });
+                return authListener;
+            },
+            async getCurrentUser() {
+                const { data: { user } } = await supabaseClient.auth.getUser();
+                currentUser = user;
+                return user;
+            }
+        };
+
+        const db = {
+            collection(tableName) {
+                return { tableName, query: supabaseClient.from(tableName) };
+            },
+            async getDocs(collectionRef, queryOptions = {}) {
+                let query = supabaseClient.from(collectionRef.tableName).select('*');
+                if (queryOptions.where) {
+                    for (const condition of queryOptions.where) {
+                        const [field, operator, value] = condition;
+                        switch (operator) {
+                            case '==': query = query.eq(field, value); break;
+                            case '!=': query = query.neq(field, value); break;
+                            case '>': query = query.gt(field, value); break;
+                            case '>=': query = query.gte(field, value); break;
+                            case '<': query = query.lt(field, value); break;
+                            case '<=': query = query.lte(field, value); break;
+                            case 'in': query = query.in(field, value); break;
+                            case 'array-contains': query = query.contains(field, [value]); break;
+                        }
+                    }
+                }
+                if (queryOptions.orderBy) {
+                    const [field, direction = 'asc'] = queryOptions.orderBy;
+                    query = query.order(field, { ascending: direction === 'asc' });
+                }
+                if (queryOptions.limit) query = query.limit(queryOptions.limit);
+                const { data, error } = await query;
+                if (error) throw error;
+                const docs = data.map(doc => ({ id: doc.id, data: () => doc, exists: () => true }));
+                return { docs: docs, size: data.length, empty: data.length === 0, docChanges: () => docs.map(doc => ({ type: 'added', doc: doc })) };
+            },
+            async getDoc(docRef) {
+                const { data, error } = await supabaseClient.from(docRef.tableName).select('*').eq('id', docRef.id).maybeSingle();
+                if (error) throw error;
+                return { id: docRef.id, data: () => data || {}, exists: () => !!data };
+            },
+            async addDoc(collectionRef, data) {
+                if (window.currentClubId && !data.clubId) data.clubId = window.currentClubId;
+                if (!data.id) data.id = `${collectionRef.tableName}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                const { data: result, error } = await supabaseClient.from(collectionRef.tableName).insert([data]).select().maybeSingle();
+                if (error) throw error;
+                return { id: result.id, data: () => result };
+            },
+            async updateDoc(docRef, data) {
+                console.log('🔧 updateDoc called:', { table: docRef.tableName, id: docRef.id, dataKeys: Object.keys(data) });
+                const processedData = {};
+                for (const [key, value] of Object.entries(data)) {
+                    if (value && typeof value === 'object' && value._type) {
+                        console.log(`🔍 Array operation: ${value._type} on "${key}"`);
+                        const { data: currentDoc } = await supabaseClient.from(docRef.tableName).select(key).eq('id', docRef.id).maybeSingle();
+                        console.log(`📥 Current ${key}:`, currentDoc?.[key]);
+                        let currentArray = currentDoc?.[key] || [];
+                        if (!Array.isArray(currentArray)) currentArray = [];
+                        if (value._type === 'arrayUnion') {
+                            const newElements = value.elements.filter(el => !currentArray.includes(el));
+                            processedData[key] = [...currentArray, ...newElements];
+                            console.log(`➕ arrayUnion: Adding ${newElements.length} elements to ${key}`);
+                        } else if (value._type === 'arrayRemove') {
+                            processedData[key] = currentArray.filter(el => !value.elements.includes(el));
+                            console.log(`➖ arrayRemove: Removing ${value.elements.length} elements from ${key}`);
+                        }
+                    } else {
+                        processedData[key] = value;
+                    }
+                }
+                console.log('📤 Sending to Supabase:', processedData);
+                const { data: result, error } = await supabaseClient.from(docRef.tableName).update(processedData).eq('id', docRef.id).select().maybeSingle();
+                if (error) { console.error('❌ Supabase error:', error); throw error; }
+                console.log('✅ Update successful:', result);
+                return result;
+            },
+            async deleteDoc(docRef) {
+                const { error } = await supabaseClient.from(docRef.tableName).delete().eq('id', docRef.id);
+                if (error) throw error;
+            },
+            async setDoc(docRef, data) {
+                data.id = docRef.id;
+                const { data: result, error } = await supabaseClient.from(docRef.tableName).upsert([data], { onConflict: 'id' }).select().maybeSingle();
+                if (error) throw error;
+                return result;
+            },
+            doc(tableName, id) {
+                return { tableName, id };
+            },
+            query(collectionRef, ...conditions) {
+                const queryOptions = { where: [], orderBy: null, limit: null };
+                conditions.forEach(condition => {
+                    if (condition.type === 'where') queryOptions.where.push([condition.field, condition.operator, condition.value]);
+                    else if (condition.type === 'orderBy') queryOptions.orderBy = [condition.field, condition.direction];
+                    else if (condition.type === 'limit') queryOptions.limit = condition.value;
+                });
+                return { ...collectionRef, queryOptions };
+            },
+            onSnapshot(collectionRef, callback, errorCallback) {
+                const tableName = collectionRef.tableName;
+                let previousDocs = [];
+                const createSnapshot = (docs) => {
+                    const changes = [];
+                    const previousIds = new Set(previousDocs.map(d => d.id));
+                    const currentIds = new Set(docs.map(d => d.id));
+                    docs.forEach(doc => {
+                        if (!previousIds.has(doc.id)) changes.push({ type: 'added', doc: doc });
+                        else {
+                            const prev = previousDocs.find(d => d.id === doc.id);
+                            if (prev && JSON.stringify(prev.data()) !== JSON.stringify(doc.data())) changes.push({ type: 'modified', doc: doc });
+                        }
+                    });
+                    previousDocs.forEach(doc => { if (!currentIds.has(doc.id)) changes.push({ type: 'removed', doc: doc }); });
+                    previousDocs = docs;
+                    return { docs: docs, size: docs.length, empty: docs.length === 0, docChanges: () => changes };
+                };
+                this.getDocs(collectionRef, collectionRef.queryOptions || {}).then(result => callback(createSnapshot(result.docs))).catch(err => errorCallback && errorCallback(err));
+                const subscription = supabaseClient.channel(`public:${tableName}`).on('postgres_changes', { event: '*', schema: 'public', table: tableName }, (payload) => {
+                    this.getDocs(collectionRef, collectionRef.queryOptions || {}).then(result => callback(createSnapshot(result.docs))).catch(err => errorCallback && errorCallback(err));
+                }).subscribe();
+                return () => { subscription.unsubscribe(); };
+            }
+        };
+
+        function where(field, operator, value) { return { type: 'where', field, operator, value }; }
+        function orderBy(field, direction = 'asc') { return { type: 'orderBy', field, direction }; }
+        function limit(value) { return { type: 'limit', value }; }
+        const arrayUnion = (...elements) => ({ _type: 'arrayUnion', elements });
+        const arrayRemove = (...elements) => ({ _type: 'arrayRemove', elements });
+        function setCurrentClubId(clubId) { window.currentClubId = clubId; }
+
+        window.supabaseHelper = { initSupabase, auth, db, where, orderBy, limit, arrayUnion, arrayRemove, setCurrentClubId };
+    </script>
     <script type="module">
         // IMPORTANT: Replace with your actual Supabase configuration
         const SUPABASE_URL = 'https://supabase.edu-ai.online';
         const SUPABASE_ANON_KEY = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzdXBhYmFzZSIsImlhdCI6MTc2MjEwNTMyMCwiZXhwIjo0OTE3Nzc4OTIwLCJyb2xlIjoiYW5vbiJ9.HXUza0GT82-trWkx0WWKe-nY7KsGrIjIHSOJPKsOHjs';
         
         // Initialize Supabase
-        const supabase = window.supabaseHelper.initSupabase(SUPABASE_URL, SUPABASE_ANON_KEY);
-        const auth = window.supabaseHelper.auth;
-        const db = window.supabaseHelper.db;
-        
-        // Make Supabase accessible globally
-        window.db = db;
-        window.auth = auth;
-        window.supabase = supabase;
+        window.supabase = window.supabaseHelper.initSupabase(SUPABASE_URL, SUPABASE_ANON_KEY);
+        window.auth = window.supabaseHelper.auth;
+        window.db = window.supabaseHelper.db;
         window.firebaseModules = {
             // collection() 1 veya 2 parametre alabilir (Firebase uyumluluğu için)
             collection: (dbRefOrName, collectionName) => {
@@ -51,7 +217,7 @@
         let clubs = [];
         let allUsers = [];
         let currentView = 'dashboard'; // 'dashboard', 'clubs', 'club-detail', 'settings'
-        let currentClubId = null; // Seçili kulüp ID'si
+        // window.currentClubId is already defined in the inline Supabase helper script above
 
         // --- AUTHENTICATION ---
         document.addEventListener('DOMContentLoaded', async () => {
@@ -174,7 +340,7 @@
         // Dashboard'a geri dön
         window.showDashboard = function() {
             currentView = 'dashboard';
-            currentClubId = null;
+            window.currentClubId = null;
             renderDashboard();
         };
         
@@ -604,7 +770,7 @@
             container.innerHTML = `
                 <div style="max-width: 800px; margin: 0 auto; padding: 20px;">
                     <!-- Geri Dön Butonu -->
-                    <button onclick="${currentClubId ? `viewDetailedClubInfo('${currentClubId}')` : 'showDashboard()'}" class="btn btn-secondary" style="margin-bottom: 20px;">
+                    <button onclick="${window.currentClubId ? `viewDetailedClubInfo('${window.currentClubId}')` : 'showDashboard()'}" class="btn btn-secondary" style="margin-bottom: 20px;">
                         ← Geri Dön
                     </button>
                     
@@ -651,7 +817,7 @@
                     </div>
                     <div style="display: flex; gap: 10px; margin-top: 20px;">
                         <button type="submit" class="btn btn-primary" style="flex: 1;">💾 Güncelle</button>
-                        <button type="button" onclick="${currentClubId ? `viewDetailedClubInfo('${currentClubId}')` : 'showDashboard()'}" class="btn btn-secondary" style="flex: 1;">❌ İptal</button>
+                        <button type="button" onclick="${window.currentClubId ? `viewDetailedClubInfo('${window.currentClubId}')` : 'showDashboard()'}" class="btn btn-secondary" style="flex: 1;">❌ İptal</button>
                     </div>
                 </form>
                 </div>
@@ -709,8 +875,8 @@
                 await loadClubs();
                 
                 // Eğer detay sayfasından geldiyse detaya dön, yoksa dashboard'a
-                if (currentClubId) {
-                    viewDetailedClubInfo(currentClubId);
+                if (window.currentClubId) {
+                    viewDetailedClubInfo(window.currentClubId);
                 } else {
                     showDashboard();
                 }
@@ -893,7 +1059,7 @@
         };
 
         window.viewDetailedClubInfo = async function(clubId) {
-            currentClubId = clubId;
+            window.currentClubId = clubId;
             currentView = 'club-detail';
             
             const club = clubs.find(c => c.id === clubId);
@@ -953,13 +1119,44 @@
                 const groupsSnapshot = await getDocs(groupsQuery);
                 const totalGroups = groupsSnapshot.docs.length;
                 
-                // Admin bilgisi
-                const adminQuery = query(
-                    collection(window.db, 'users'),
-                    where('clubId', '==', clubId)
-                );
-                const adminSnapshot = await getDocs(adminQuery);
-                const adminInfo = adminSnapshot.empty ? null : adminSnapshot.docs[0].data();
+                // Admin bilgisi (hem Firebase hem Supabase'den)
+                let adminInfo = null;
+                
+                // Önce Supabase'den dene
+                try {
+                    const { data: supabaseAdmins, error } = await supabase
+                        .from('users')
+                        .select('*')
+                        .eq('"clubId"', clubId)  // ✅ Tırnak ile camelCase kolon
+                        .limit(1);
+                    
+                    if (error) {
+                        console.error('❌ Supabase admin sorgusu hatası:', error);
+                    }
+                    
+                    if (!error && supabaseAdmins && supabaseAdmins.length > 0) {
+                        adminInfo = supabaseAdmins[0];
+                        console.log('✅ Admin bilgisi Supabase\'den yüklendi:', adminInfo);
+                    } else {
+                        console.log('⚠️ Supabase\'de admin bulunamadı, Firebase deneniyor...');
+                    }
+                } catch (err) {
+                    console.error('⚠️ Supabase admin sorgusu exception:', err);
+                }
+                
+                // Supabase'de yoksa Firebase'den dene
+                if (!adminInfo) {
+                    const adminQuery = query(
+                        collection(window.db, 'users'),
+                        where('clubId', '==', clubId)
+                    );
+                    const adminSnapshot = await getDocs(adminQuery);
+                    adminInfo = adminSnapshot.empty ? null : adminSnapshot.docs[0].data();
+                    
+                    if (adminInfo) {
+                        console.log('✅ Admin bilgisi Firebase\'den yüklendi:', adminInfo);
+                    }
+                }
                 
                 // Muhasebe Hesaplamaları
                 let monthlyRevenue = 0;
@@ -1268,15 +1465,20 @@
                 const { data: users, error } = await window.supabase
                     .from('users')
                     .select('*')
-                    .eq('club_id', clubId)
+                    .eq('"clubId"', clubId)  // ✅ Tırnak ile camelCase
                     .eq('role', 'admin')
                     .limit(1);
                 
-                if (!error && users && users.length > 0) {
+                if (error) {
+                    console.error('❌ Admin user sorgu hatası:', error);
+                } else if (users && users.length > 0) {
                     adminInfo = users[0];
+                    console.log('✅ Admin user bulundu:', adminInfo);
+                } else {
+                    console.log('⚠️ Admin user bulunamadı');
                 }
             } catch (error) {
-                console.error('Error loading admin info:', error);
+                console.error('❌ Error loading admin info:', error);
             }
             
             showModal(`
@@ -1629,6 +1831,7 @@
         // ==================== WHATSAPP PACKAGES MANAGEMENT ====================
         
         async function renderWhatsAppPackages() {
+            console.log('📦 WhatsApp paketleri yükleniyor...');
             const container = document.getElementById('content-area');
             container.innerHTML = '<div style="text-align: center; padding: 40px;"><div class="spinner"></div><p>Yükleniyor...</p></div>';
             
@@ -1638,7 +1841,13 @@
                     .select('*')
                     .order('message_count', { ascending: true });
                 
-                if (error) throw error;
+                if (error) {
+                    console.error('❌ Paketler yüklenirken hata:', error);
+                    throw error;
+                }
+                
+                console.log('✅ Paketler yüklendi:', packages.length, 'adet');
+                console.table(packages);
                 
                 container.innerHTML = `
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
@@ -1656,29 +1865,41 @@
                                         <th style="padding: 15px; text-align: left;">Paket Adı</th>
                                         <th style="padding: 15px; text-align: center;">Mesaj Sayısı</th>
                                         <th style="padding: 15px; text-align: center;">Fiyat</th>
-                                        <th style="padding: 15px; text-align: center;">Açıklama</th>
+                                        <th style="padding: 15px; text-align: center;">Mesaj Başı</th>
+                                        <th style="padding: 15px; text-align: center;">Popüler</th>
                                         <th style="padding: 15px; text-align: center;">Durum</th>
+                                        <th style="padding: 15px; text-align: center;">Açıklama</th>
                                         <th style="padding: 15px; text-align: center;">İşlemler</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     ${packages.length === 0 ? `
                                         <tr>
-                                            <td colspan="6" style="padding: 40px; text-align: center; color: #6c757d;">
+                                            <td colspan="8" style="padding: 40px; text-align: center; color: #6c757d;">
                                                 Henüz paket eklenmemiş
                                             </td>
                                         </tr>
-                                    ` : packages.map(pkg => `
+                                    ` : packages.map(pkg => {
+                                        const pricePerMessage = (parseFloat(pkg.price) / pkg.message_count).toFixed(3);
+                                        return `
                                         <tr style="border-bottom: 1px solid #dee2e6;">
-                                            <td style="padding: 15px; font-weight: 600;">${pkg.name}</td>
+                                            <td style="padding: 15px; font-weight: 600;">
+                                                ${pkg.is_popular ? '⭐ ' : ''}${pkg.name}
+                                            </td>
                                             <td style="padding: 15px; text-align: center;">${pkg.message_count.toLocaleString('tr-TR')} mesaj</td>
                                             <td style="padding: 15px; text-align: center; font-weight: 600; color: #28a745;">₺${parseFloat(pkg.price).toLocaleString('tr-TR', {minimumFractionDigits: 2})}</td>
-                                            <td style="padding: 15px; text-align: center; color: #6c757d; font-size: 13px; max-width: 200px;">${pkg.description || '-'}</td>
+                                            <td style="padding: 15px; text-align: center; font-size: 13px; color: #666;">₺${pricePerMessage}</td>
+                                            <td style="padding: 15px; text-align: center;">
+                                                <span style="padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; ${pkg.is_popular ? 'background: #fff3cd; color: #856404;' : 'background: #f8f9fa; color: #6c757d;'}">
+                                                    ${pkg.is_popular ? '⭐ Popüler' : '-'}
+                                                </span>
+                                            </td>
                                             <td style="padding: 15px; text-align: center;">
                                                 <span style="padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; ${pkg.is_active ? 'background: #d4edda; color: #155724;' : 'background: #f8d7da; color: #721c24;'}">
                                                     ${pkg.is_active ? '✓ Aktif' : '✗ Pasif'}
                                                 </span>
                                             </td>
+                                            <td style="padding: 15px; text-align: center; color: #6c757d; font-size: 13px; max-width: 200px;">${pkg.description || '-'}</td>
                                             <td style="padding: 15px; text-align: center;">
                                                 <button onclick="togglePackageStatus('${pkg.id}', ${!pkg.is_active})" class="btn-sm" style="margin-right: 8px; padding: 6px 12px; background: ${pkg.is_active ? '#ffc107' : '#28a745'}; color: white; border: none; border-radius: 6px; cursor: pointer;">
                                                     ${pkg.is_active ? '⏸ Pasifleştir' : '▶ Aktifleştir'}
@@ -1691,7 +1912,8 @@
                                                 </button>
                                             </td>
                                         </tr>
-                                    `).join('')}
+                                        `;
+                                    }).join('')}
                                 </tbody>
                             </table>
                         </div>
@@ -1767,14 +1989,25 @@
                             ></textarea>
                         </div>
                         
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <input 
-                                type="checkbox" 
-                                id="package-active" 
-                                checked
-                                style="width: 20px; height: 20px; cursor: pointer;"
-                            >
-                            <label for="package-active" style="cursor: pointer; font-weight: 600;">Paketi Aktif Olarak Ekle</label>
+                        <div style="display: flex; flex-direction: column; gap: 15px;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <input 
+                                    type="checkbox" 
+                                    id="package-active" 
+                                    checked
+                                    style="width: 20px; height: 20px; cursor: pointer;"
+                                >
+                                <label for="package-active" style="cursor: pointer; font-weight: 600;">Paketi Aktif Olarak Ekle</label>
+                            </div>
+                            
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <input 
+                                    type="checkbox" 
+                                    id="package-popular" 
+                                    style="width: 20px; height: 20px; cursor: pointer;"
+                                >
+                                <label for="package-popular" style="cursor: pointer; font-weight: 600;">⭐ Popüler Paket Olarak İşaretle</label>
+                            </div>
                         </div>
                         
                         <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 10px;">
@@ -1802,6 +2035,7 @@
             const price = parseFloat(document.getElementById('package-price').value);
             const description = document.getElementById('package-description').value.trim();
             const isActive = document.getElementById('package-active').checked;
+            const isPopular = document.getElementById('package-popular').checked;
             
             if (!name || messageCount < 1 || price < 0) {
                 showAlert('❌ Lütfen tüm gerekli alanları doğru doldurun!', 'error');
@@ -1816,7 +2050,8 @@
                         message_count: messageCount,
                         price: price,
                         description: description || null,
-                        is_active: isActive
+                        is_active: isActive,
+                        is_popular: isPopular
                     }])
                     .select();
                 
@@ -1898,14 +2133,26 @@
                                 >${pkg.description || ''}</textarea>
                             </div>
                             
-                            <div style="display: flex; align-items: center; gap: 10px;">
-                                <input 
-                                    type="checkbox" 
-                                    id="edit-package-active" 
-                                    ${pkg.is_active ? 'checked' : ''}
-                                    style="width: 20px; height: 20px; cursor: pointer;"
-                                >
-                                <label for="edit-package-active" style="cursor: pointer; font-weight: 600;">Paket Aktif</label>
+                            <div style="display: flex; flex-direction: column; gap: 15px;">
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <input 
+                                        type="checkbox" 
+                                        id="edit-package-active" 
+                                        ${pkg.is_active ? 'checked' : ''}
+                                        style="width: 20px; height: 20px; cursor: pointer;"
+                                    >
+                                    <label for="edit-package-active" style="cursor: pointer; font-weight: 600;">Paket Aktif</label>
+                                </div>
+                                
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <input 
+                                        type="checkbox" 
+                                        id="edit-package-popular" 
+                                        ${pkg.is_popular ? 'checked' : ''}
+                                        style="width: 20px; height: 20px; cursor: pointer;"
+                                    >
+                                    <label for="edit-package-popular" style="cursor: pointer; font-weight: 600;">⭐ Popüler Paket (Öne Çıkar)</label>
+                                </div>
                             </div>
                             
                             <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 10px;">
@@ -1939,6 +2186,9 @@
             const price = parseFloat(document.getElementById('edit-package-price').value);
             const description = document.getElementById('edit-package-description').value.trim();
             const isActive = document.getElementById('edit-package-active').checked;
+            const isPopular = document.getElementById('edit-package-popular').checked;
+            
+            console.log('📦 Paket güncelleniyor:', { packageId, name, messageCount, price, description, isActive, isPopular });
             
             if (!name || messageCount < 1 || price < 0) {
                 showAlert('❌ Lütfen tüm gerekli alanları doğru doldurun!', 'error');
@@ -1946,6 +2196,7 @@
             }
             
             try {
+                console.log('🔄 Supabase UPDATE çağrılıyor...');
                 const { data, error } = await window.supabase
                     .from('whatsapp_packages')
                     .update({
@@ -1953,13 +2204,19 @@
                         message_count: messageCount,
                         price: price,
                         description: description || null,
-                        is_active: isActive
+                        is_active: isActive,
+                        is_popular: isPopular
                     })
                     .eq('id', packageId)
                     .select();
                 
-                if (error) throw error;
+                if (error) {
+                    console.error('❌ Supabase hatası:', error);
+                    console.error('❌ Hata detayı:', JSON.stringify(error, null, 2));
+                    throw error;
+                }
                 
+                console.log('✅ Güncelleme başarılı:', data);
                 showAlert('✅ Paket başarıyla güncellendi!', 'success');
                 closeModal();
                 renderWhatsAppPackages();
