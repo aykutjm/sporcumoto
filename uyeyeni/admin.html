@@ -4478,6 +4478,43 @@ Görev detaylarını kontrol ediniz.</textarea>
                 
                 whatsappDevices = devices || []; // Global değişkene kaydet
                 
+                // ✅ Evolution API'den instance listesi çek ve senkronize et
+                try {
+                    const instanceResponse = await fetch(`${EVOLUTION_API_URL}/instance/fetchInstances`, {
+                        method: 'GET',
+                        headers: {
+                            'apikey': EVOLUTION_API_KEY
+                        }
+                    });
+                    
+                    if (instanceResponse.ok) {
+                        const evolutionInstances = await instanceResponse.json();
+                        const evolutionInstanceNames = evolutionInstances.map(i => i.instance?.instanceName || i.instanceName).filter(Boolean);
+                        
+                        console.log('🔍 Evolution API instances:', evolutionInstanceNames);
+                        
+                        // Supabase'de olan ama Evolution'da olmayan cihazları bul ve sil
+                        for (const device of whatsappDevices) {
+                            if (!evolutionInstanceNames.includes(device.instanceName)) {
+                                console.log(`🗑️ ${device.instanceName} Evolution'da yok, Supabase'den siliniyor...`);
+                                
+                                await supabase
+                                    .from('whatsappDevices')
+                                    .delete()
+                                    .eq('id', device.id);
+                                
+                                // Local state'den de kaldır
+                                const index = whatsappDevices.findIndex(d => d.id === device.id);
+                                if (index !== -1) {
+                                    whatsappDevices.splice(index, 1);
+                                }
+                            }
+                        }
+                    }
+                } catch (syncError) {
+                    console.warn('⚠️ Evolution API senkronizasyonu başarısız:', syncError.message);
+                }
+                
                 if (whatsappDevices.length === 0) {
                     container.innerHTML = '<p class="empty-state">Henüz bağlı cihaz yok. Yukarıdan yeni cihaz ekleyebilirsiniz.</p>';
                 } else {
