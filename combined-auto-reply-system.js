@@ -515,10 +515,11 @@ async function processUpcomingPayments(club, devices) {
       return;
     }
 
-    // Önümüzdeki 3 gün içinde ödemesi olan müşteriler
+    // Şablonda belirtilen gün sayısı kadar önceden uyarı gönder (varsayılan 3 gün)
+    const daysBefore = template.days_before || 3;
     const today = new Date();
-    const threeDaysLater = new Date();
-    threeDaysLater.setDate(today.getDate() + 3);
+    const targetDate = new Date();
+    targetDate.setDate(today.getDate() + daysBefore);
 
     const { data: upcomingPayments } = await supabase
       .from('accounting')
@@ -532,14 +533,14 @@ async function processUpcomingPayments(club, devices) {
       .eq('type', 'income')
       .eq('status', 'pending')
       .gte('dueDate', today.toISOString())
-      .lte('dueDate', threeDaysLater.toISOString());
+      .lte('dueDate', targetDate.toISOString());
 
     if (!upcomingPayments || upcomingPayments.length === 0) {
-      console.log(`✅ ${club.name}: Yaklaşan ödeme yok`);
+      console.log(`✅ ${club.name}: Yaklaşan ödeme yok (${daysBefore} gün içinde)`);
       return;
     }
 
-    console.log(`💳 ${club.name}: ${upcomingPayments.length} yaklaşan ödeme bulundu`);
+    console.log(`💳 ${club.name}: ${upcomingPayments.length} yaklaşan ödeme bulundu (${daysBefore} gün içinde)`);
 
     // Bugün gönderilenleri kontrol et
     const todayStart = new Date();

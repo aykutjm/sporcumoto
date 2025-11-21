@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS message_templates (
   is_active boolean DEFAULT true,
   send_days integer[] DEFAULT '{1,2,3,4,5}', -- 0=Pazar, 1=Pazartesi, ..., 6=Cumartesi
   send_time time DEFAULT '09:00:00',
+  days_before integer DEFAULT 3, -- Yaklaşan ödemeler için kaç gün önceden mesaj gönderilecek
   created_at timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now()
 );
@@ -56,3 +57,4 @@ COMMENT ON TABLE message_templates IS 'WhatsApp otomatik mesaj şablonları';
 COMMENT ON COLUMN message_templates.category IS 'Mesaj kategorisi: missed_call, overdue_payment, absence, upcoming_payment, trial_lesson';
 COMMENT ON COLUMN message_templates.send_days IS 'Mesajın gönderileceği günler (0=Pazar, 1=Pazartesi, ..., 6=Cumartesi)';
 COMMENT ON COLUMN message_templates.send_time IS 'Mesajın gönderileceği saat (HH:MM:SS formatında)';
+COMMENT ON COLUMN message_templates.days_before IS 'Yaklaşan ödemeler için kaç gün önceden uyarı gönderilecek (varsayılan: 3 gün)';
