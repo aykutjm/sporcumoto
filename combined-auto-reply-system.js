@@ -199,16 +199,16 @@ async function processMissedCalls(club, clubSettings, devices) {
       const callTime = call.datetime;
       const callee = call.callee;
 
-      // MESAİ SAATLERİ KONTROLÜ (sadece cevapsız aramalar için)
-      if (!checkBusinessHours(callTime, clubSettings.messageSendingHours)) {
-        console.log(`⏰ Mesai saati dışında arama: ${callerNumber}`);
-        continue;
-      }
-
       // Cihaz eşleştir
       const device = findMatchingDevice(callee, devices);
       if (!device) {
         console.log(`⚠️ Cihaz bulunamadı: ${callee}`);
+        continue;
+      }
+
+      // MESAİ SAATLERİ KONTROLÜ - Cihazın kendi ayarlarından al
+      if (!checkBusinessHours(callTime, device.message_sending_hours)) {
+        console.log(`⏰ Mesai saati dışında arama: ${callerNumber} (${device.deviceName || device.device_name})`);
         continue;
       }
 
@@ -842,10 +842,10 @@ async function main() {
 
       const clubSettings = settings.data;
 
-      // WhatsApp cihazlarını al
+      // WhatsApp cihazlarını al (mesaj gönderim saatleri dahil)
       const { data: devices } = await supabase
         .from('whatsappDevices')
-        .select('id, instanceName, phoneNumber')
+        .select('id, instanceName, phoneNumber, message_sending_hours')
         .eq('clubId', club.id);
 
       if (!devices || devices.length === 0) {
