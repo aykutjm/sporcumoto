@@ -4464,7 +4464,21 @@ Görev detaylarını kontrol ediniz.</textarea>
             container.innerHTML = '<div class="loading"><div class="spinner"></div><span>Cihazlar yükleniyor...</span></div>';
             
             try {
-                // Load from Firebase instead of API
+                // ✅ Supabase'den WhatsApp cihazlarını çek (message_sending_hours dahil)
+                const { data: devices, error } = await supabase
+                    .from('whatsappDevices')
+                    .select('*')
+                    .eq('clubId', currentUser.clubId)
+                    .order('createdAt', { ascending: false });
+                
+                if (error) {
+                    console.error('WhatsApp cihazları yüklenirken hata:', error);
+                    container.innerHTML = '<p class="empty-state">Cihazlar yüklenirken hata oluştu.</p>';
+                    return;
+                }
+                
+                whatsappDevices = devices || []; // Global değişkene kaydet
+                
                 if (whatsappDevices.length === 0) {
                     container.innerHTML = '<p class="empty-state">Henüz bağlı cihaz yok. Yukarıdan yeni cihaz ekleyebilirsiniz.</p>';
                 } else {
