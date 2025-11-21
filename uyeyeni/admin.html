@@ -6552,8 +6552,9 @@ Görev detaylarını kontrol ediniz.</textarea>
                 
                 try {
                     console.log('📥 Evolution API\'den chat\'ler çekiliyor...');
+                    console.log(`🔗 URL: ${evolutionUrl}/chat/findChats/${device.instanceName}`);
                     
-                    // findChats kullan (daha stabil)
+                    // Önce findChats dene
                     const chatResponse = await fetch(`${evolutionUrl}/chat/findChats/${device.instanceName}`, {
                         method: 'POST',
                         headers: {
@@ -6568,13 +6569,33 @@ Görev detaylarını kontrol ediniz.</textarea>
                     if (chatResponse.ok) {
                         chats = await chatResponse.json();
                         console.log(`✅ findChats'dan ${chats.length} sohbet yüklendi`);
+                        
+                        // Eğer boşsa, fetchInstances dene
+                        if (chats.length === 0) {
+                            console.log('⚠️ findChats boş döndü, /instance/fetchInstances deneniyor...');
+                            
+                            const instanceResponse = await fetch(`${evolutionUrl}/instance/fetchInstances`, {
+                                method: 'GET',
+                                headers: {
+                                    'apikey': apiKey
+                                }
+                            });
+                            
+                            if (instanceResponse.ok) {
+                                const instances = await instanceResponse.json();
+                                console.log('📱 Instance response:', instances);
+                                
+                                // Instance'ı bul
+                                const instance = instances.find(i => i.instanceName === device.instanceName || i.instance?.instanceName === device.instanceName);
+                                console.log('🔍 Bulunan instance:', instance);
+                            }
+                        }
                     } else {
-                        // ❌ Evolution API hatası - sessizce Supabase'e geç
-                        console.log(`ℹ️ Evolution API kullanılamıyor (${chatResponse.status}), Supabase'den yükleniyor...`);
+                        console.log(`❌ Evolution API hatası (${chatResponse.status}):`, await chatResponse.text());
                         chats = [];
                     }
                 } catch (fetchError) {
-                    console.log('ℹ️ Evolution API hatası:', fetchError.message);
+                    console.error('❌ Evolution API fetch hatası:', fetchError);
                     chats = [];
                 }
                 
