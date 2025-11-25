@@ -1042,8 +1042,9 @@
                   return showModalAlert('⚠️ Adres Gerekli', 'Adres alanı zorunludur. Lütfen doldurun.');
              }
              
-             // ✅ Çocuk kaydı ise öğrenci TC kontrolü
-             const isChildRegistration = document.getElementById('membership-type').value === 'child';
+             // ✅ Çocuk kaydı ise öğrenci TC kontrolü (minorFields görünür mü kontrol et)
+             const minorFieldsDiv = document.getElementById('minorFields');
+             const isChildRegistration = minorFieldsDiv && minorFieldsDiv.style.display !== 'none';
              if (isChildRegistration) {
                  const minorTc = document.getElementById('minorTc')?.value.trim();
                  if (!minorTc) {
@@ -1423,28 +1424,69 @@
         // ✅ Öğrenci doğum tarihlerini form alanlarından güncelle ve Firebase'e kaydet
         if (isChildRegistration) {
             const birthDateFields = document.querySelectorAll('.student-birthdate-field');
+            const tcFields = document.querySelectorAll('.student-tc-field');
+            
             for (let index = 0; index < birthDateFields.length; index++) {
-                const field = birthDateFields[index];
-                if (allPreRegistrations[index] && field.value) {
+                const birthDateField = birthDateFields[index];
+                const tcField = tcFields[index];
+                const updateData = {};
+                
+                // Doğum tarihi güncelle
+                if (allPreRegistrations[index] && birthDateField.value) {
                     const oldBirthDate = allPreRegistrations[index].studentBirthDate;
-                    if (oldBirthDate !== field.value) {
-                        allPreRegistrations[index].studentBirthDate = field.value;
+                    if (oldBirthDate !== birthDateField.value) {
+                        updateData.studentBirthDate = birthDateField.value;
+                        allPreRegistrations[index].studentBirthDate = birthDateField.value;
+                    }
+                }
+                
+                // ✅ Öğrenci TC güncelle
+                if (allPreRegistrations[index] && tcField && tcField.value) {
+                    const oldTc = allPreRegistrations[index].studentTc;
+                    if (oldTc !== tcField.value.trim()) {
+                        updateData.studentTc = tcField.value.trim();
+                        allPreRegistrations[index].studentTc = tcField.value.trim();
+                    }
+                }
+                
+                // Supabase'e kaydet (eğer değişiklik varsa)
+                if (Object.keys(updateData).length > 0) {
+                    try {
+                        const { error } = await window.supabase
+                            .from('preRegistrations')
+                            .update(updateData)
+                            .eq('id', allPreRegistrations[index].id);
                         
-                        // Supabase'e kaydet
-                        try {
-                            const { error } = await window.supabase
-                                .from('preRegistrations')
-                                .update({ studentBirthDate: field.value })
-                                .eq('id', allPreRegistrations[index].id);
-                            
-                            if (error) {
-                                console.error(`❌ Öğrenci ${index + 1} doğum tarihi güncelleme hatası:`, error);
-                            } else {
-                                console.log(`✅ Öğrenci ${index + 1} doğum tarihi güncellendi:`, field.value);
-                            }
-                        } catch (error) {
-                            console.error(`❌ Öğrenci ${index + 1} doğum tarihi güncelleme hatası:`, error);
+                        if (error) {
+                            console.error(`❌ Öğrenci ${index + 1} bilgi güncelleme hatası:`, error);
+                        } else {
+                            console.log(`✅ Öğrenci ${index + 1} bilgileri güncellendi:`, updateData);
                         }
+                    } catch (error) {
+                        console.error(`❌ Öğrenci ${index + 1} bilgi güncelleme hatası:`, error);
+                    }
+                }
+            }
+            
+            // ✅ Tek öğrenci varsa ve minorTc inputu varsa onu da kaydet
+            const minorTcInput = document.getElementById('minorTc');
+            if (minorTcInput && minorTcInput.value && currentPreRegistration) {
+                const minorTcValue = minorTcInput.value.trim();
+                if (currentPreRegistration.studentTc !== minorTcValue) {
+                    try {
+                        const { error } = await window.supabase
+                            .from('preRegistrations')
+                            .update({ studentTc: minorTcValue })
+                            .eq('id', currentPreRegistration.id);
+                        
+                        if (error) {
+                            console.error('❌ Öğrenci TC güncelleme hatası:', error);
+                        } else {
+                            console.log('✅ Öğrenci TC güncellendi:', minorTcValue);
+                            currentPreRegistration.studentTc = minorTcValue;
+                        }
+                    } catch (error) {
+                        console.error('❌ Öğrenci TC güncelleme hatası:', error);
                     }
                 }
             }
