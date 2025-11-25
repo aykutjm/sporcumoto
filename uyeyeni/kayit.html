@@ -251,9 +251,9 @@
                     <div id="minorFields" style="margin-top: 20px; display: none;">
                         <h4 class="section-title" style="font-size: 1.2em; margin-bottom: 15px; text-align: left;">Öğrenci Bilgileri</h4>
                         <div class="form-grid">
-                            <div class="form-group"><label for="minorFullName">Öğrenci Adı Soyadı *</label><input type="text" id="minorFullName" name="Resit_Olmayan_Adi_Soyadi" required></div>
-                            <div class="form-group"><label for="minorTc">🆔 Öğrenci TC Kimlik No *</label><input type="text" id="minorTc" name="Resit_Olmayan_TC" required pattern="[0-9]{11}" maxlength="11" placeholder="11 haneli TC kimlik numarası"></div>
-                            <div class="form-group"><label for="minorDob">Öğrenci Doğum Tarihi *</label><input type="date" id="minorDob" name="Resit_Olmayan_Dogum_Tarihi" min="1900-01-01" max="" required></div>
+                            <div class="form-group"><label for="minorFullName">Öğrenci Adı Soyadı *</label><input type="text" id="minorFullName" name="Resit_Olmayan_Adi_Soyadi"></div>
+                            <div class="form-group"><label for="minorTc">🆔 Öğrenci TC Kimlik No *</label><input type="text" id="minorTc" name="Resit_Olmayan_TC" pattern="[0-9]{11}" maxlength="11" placeholder="11 haneli TC kimlik numarası"></div>
+                            <div class="form-group"><label for="minorDob">Öğrenci Doğum Tarihi *</label><input type="date" id="minorDob" name="Resit_Olmayan_Dogum_Tarihi" min="1900-01-01" max=""></div>
                         </div>
                         <h4 class="section-title" style="font-size: 1.2em; margin-top: 20px; margin-bottom: 15px; text-align: left;">İkinci Veli Bilgileri (İsteğe Bağlı)</h4>
                         <div class="form-grid">
@@ -1304,15 +1304,15 @@
                 studentDiv.innerHTML = `
                     <div class="form-group">
                         <label>Öğrenci ${index + 1} Adı Soyadı *</label>
-                        <input type="text" class="form-control" value="${reg.studentName}" readonly required>
+                        <input type="text" class="form-control" value="${reg.studentName}" readonly>
                     </div>
                     <div class="form-group">
                         <label>🆔 TC Kimlik No *</label>
-                        <input type="text" class="form-control student-tc-field" value="${reg.studentTc || ''}" pattern="[0-9]{11}" maxlength="11" placeholder="11 haneli TC" required data-student-name="${reg.studentName}">
+                        <input type="text" class="form-control student-tc-field" value="${reg.studentTc || ''}" pattern="[0-9]{11}" maxlength="11" placeholder="11 haneli TC" data-student-name="${reg.studentName}">
                     </div>
                     <div class="form-group">
                         <label>Doğum Tarihi *</label>
-                        <input type="date" class="form-control student-birthdate-field" value="${formattedBirthDate}" min="1900-01-01" max="" required data-student-name="${reg.studentName}">
+                        <input type="date" class="form-control student-birthdate-field" value="${formattedBirthDate}" min="1900-01-01" max="" data-student-name="${reg.studentName}">
                     </div>
                 `;
                 studentsList.appendChild(studentDiv);
