@@ -25656,6 +25656,7 @@ Görev detaylarını kontrol ediniz.</textarea>
                                 <h4 style="margin-top: 0;">👤 Üye Bilgileri</h4>
                                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                                     <div><strong>Öğrenci Adı:</strong> ${member.Resit_Olmayan_Adi_Soyadi || '-'}</div>
+                                    ${member.studentTc ? `<div><strong>🆔 Öğrenci TC:</strong> ${member.studentTc}</div>` : ''}
                                     <div><strong>Veli 1:</strong> ${parentName}</div>
                                     <div><strong>Veli 2:</strong> ${parentName2}</div>
                                     <div><strong>Durum:</strong> ${member.status === 'active' ? '✅ Aktif' : member.status === 'expired' ? '❌ Pasif' : '⏸️ Dondurulmuş'}</div>
@@ -25759,6 +25760,11 @@ Görev detaylarını kontrol ediniz.</textarea>
             form.Telefon_2.value = member.Telefon_2 || '';
             form.Resit_Olmayan_Adi_Soyadi.value = member.Resit_Olmayan_Adi_Soyadi || '';
             form.Telefon.value = member.Telefon || '';
+            
+            // ✅ Öğrenci TC Kimlik No
+            if (form.studentTc) {
+                form.studentTc.value = member.studentTc || '';
+            }
             
             // ✅ Doğum tarihi (studentBirthDate veya DogumTarihi)
             const birthDate = member.studentBirthDate || member.DogumTarihi || '';
@@ -38833,7 +38839,12 @@ Branş: {BRANS}<br>
                             <small class="form-text">Çocuk üyeler için doldurulmalıdır</small>
                         </div>
                         <div class="form-group">
-                            <label>🎂 Doğum Tarihi</label>
+                            <label>� Öğrenci TC Kimlik No</label>
+                            <input type="text" class="form-control" name="studentTc" placeholder="11 haneli TC kimlik numarası" maxlength="11" pattern="[0-9]{11}">
+                            <small class="form-text">Öğrenci TC kimlik numarası (11 hane)</small>
+                        </div>
+                        <div class="form-group">
+                            <label>�🎂 Doğum Tarihi</label>
                             <input type="date" class="form-control" name="studentBirthDate">
                             <small class="form-text">Yaş hesaplaması için gereklidir</small>
                         </div>
@@ -38930,6 +38941,10 @@ Branş: {BRANS}<br>
                     <div class="form-group">
                         <label id="studentNameLabelEdit">Öğrenci Adı Soyadı</label>
                         <input type="text" class="form-control" name="studentName">
+                    </div>
+                    <div class="form-group">
+                        <label>🆔 Öğrenci TC Kimlik No</label>
+                        <input type="text" class="form-control" name="studentTc" placeholder="11 haneli TC" maxlength="11" pattern="[0-9]{11}">
                     </div>
                     <div class="form-group">
                         <label>Branş *</label>
