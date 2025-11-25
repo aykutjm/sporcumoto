@@ -25657,11 +25657,12 @@ Görev detaylarını kontrol ediniz.</textarea>
                                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                                     <div><strong>Öğrenci Adı:</strong> ${member.Resit_Olmayan_Adi_Soyadi || '-'}</div>
                                     ${member.studentTc ? `<div><strong>🆔 Öğrenci TC:</strong> ${member.studentTc}</div>` : ''}
+                                    ${member.Resit_Olmayan_Dogum_Tarihi ? `<div><strong>📅 Öğrenci Doğum Tarihi:</strong> ${new Date(member.Resit_Olmayan_Dogum_Tarihi).toLocaleDateString('tr-TR')}</div>` : ''}
                                     <div><strong>Veli 1:</strong> ${parentName}</div>
                                     ${member.parentTc ? `<div><strong>🆔 Veli TC:</strong> ${member.parentTc}</div>` : ''}
+                                    ${member.DogumTarihi ? `<div><strong>📅 Veli Doğum Tarihi:</strong> ${new Date(member.DogumTarihi).toLocaleDateString('tr-TR')}</div>` : ''}
                                     <div><strong>Veli 2:</strong> ${parentName2}</div>
                                     <div><strong>Durum:</strong> ${member.status === 'active' ? '✅ Aktif' : member.status === 'expired' ? '❌ Pasif' : '⏸️ Dondurulmuş'}</div>
-                                    ${member.DogumTarihi ? `<div><strong>Doğum Tarihi:</strong> ${new Date(member.DogumTarihi).toLocaleDateString('tr-TR')}</div>` : ''}
                                 </div>
                             </div>
                             

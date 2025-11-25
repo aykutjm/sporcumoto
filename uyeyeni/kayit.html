@@ -940,9 +940,11 @@
         ${isChild ? `<p><strong>Reşit Olmayan Öğrenci Bilgileri:</strong><br>
         ${allStudents.map((student, index) => `
             <br>${index + 1}. Öğrenci Adı ve Soyadı: ${student.name}<br>
+            ${student.tc ? `&nbsp;&nbsp;&nbsp;TC Kimlik No: ${student.tc}<br>` : ''}
             ${student.birthDate ? `&nbsp;&nbsp;&nbsp;Doğum Tarihi: ${formatDate(student.birthDate)}<br>` : ''}
         `).join('')}
         <br>Velisinin/Vasisinin Adı ve Soyadı: ${data.Ad_Soyad}
+        ${data.TC_Kimlik_No ? `<br>Velinin TC Kimlik No: ${data.TC_Kimlik_No}` : ''}
         ${data.Dogum_Tarihi ? `<br>Velinin Doğum Tarihi: ${formatDate(data.Dogum_Tarihi)}` : ''}</p>` : ''}`;
 
         return [part1, part2, part3, part4, part5, part6];
@@ -1520,7 +1522,8 @@
             // ✅ Sadece çocuk kaydıysa öğrenci bilgilerini ekle
             allStudents: isChildRegistration ? allPreRegistrations.map(reg => ({
                 name: reg.studentName,
-                birthDate: reg.studentBirthDate || ''
+                birthDate: reg.studentBirthDate || '',
+                tc: reg.studentTc || ''
             })) : []
         };
         
@@ -1537,6 +1540,7 @@
                 console.log(`👶 Öğrenci ${i+1}:`, {
                     name: student.name,
                     birthDate: student.birthDate,
+                    tc: student.tc,
                     hasbirthDate: !!student.birthDate
                 });
             });
