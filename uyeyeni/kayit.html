@@ -1042,45 +1042,47 @@
                   return showModalAlert('⚠️ Adres Gerekli', 'Adres alanı zorunludur. Lütfen doldurun.');
              }
              
-             // ✅ Çocuk kaydı ise öğrenci TC kontrolü (minorFields görünür mü kontrol et)
-             const minorFieldsDiv = document.getElementById('minorFields');
-             const isChildRegistration = minorFieldsDiv && minorFieldsDiv.style.display !== 'none';
-             
-             console.log('🔍 TC Validation Debug:', {
-                 minorFieldsExists: !!minorFieldsDiv,
-                 minorFieldsDisplay: minorFieldsDiv?.style.display,
-                 isChildRegistration: isChildRegistration,
-                 minorTcValue: document.getElementById('minorTc')?.value,
-                 studentTcFieldsCount: document.querySelectorAll('.student-tc-field').length
-             });
-             
-             if (isChildRegistration) {
-                 const minorTc = document.getElementById('minorTc')?.value.trim();
-                 console.log('📝 Single student TC check:', { minorTc, length: minorTc?.length });
-                 
-                 if (!minorTc) {
-                     return showModalAlert('⚠️ Öğrenci TC Gerekli', 'Öğrenci TC Kimlik Numarası alanı zorunludur. Lütfen doldurun.');
-                 }
-                 if (minorTc.length !== 11 || !/^\d{11}$/.test(minorTc)) {
-                     return showModalAlert('⚠️ Geçersiz Öğrenci TC', 'Öğrenci TC Kimlik Numarası 11 haneli olmalı ve sadece rakamlardan oluşmalıdır.');
-                 }
-             }
-             
-             // ✅ Çoklu çocuk kayıtlarında her öğrenci için TC kontrolü
+             // ✅ Önce çoklu öğrenci TC kontrolü (eğer varsa)
              const studentTcFields = document.querySelectorAll('.student-tc-field');
              console.log('👥 Multiple students TC check:', { count: studentTcFields.length });
              
-             for (const field of studentTcFields) {
-                 const tcValue = field.value.trim();
-                 console.log('  - Student TC:', { name: field.dataset.studentName, tc: tcValue, length: tcValue.length });
-                 
-                 if (!tcValue) {
-                     const studentName = field.dataset.studentName || 'Öğrenci';
-                     return showModalAlert('⚠️ Öğrenci TC Gerekli', `"${studentName}" için TC Kimlik Numarası alanı boş. Lütfen doldurun.`);
+             if (studentTcFields.length > 0) {
+                 // Çoklu öğrenci kaydı - her öğrenci için TC kontrolü
+                 for (const field of studentTcFields) {
+                     const tcValue = field.value.trim();
+                     console.log('  - Student TC:', { name: field.dataset.studentName, tc: tcValue, length: tcValue.length });
+                     
+                     if (!tcValue) {
+                         const studentName = field.dataset.studentName || 'Öğrenci';
+                         return showModalAlert('⚠️ Öğrenci TC Gerekli', `"${studentName}" için TC Kimlik Numarası alanı boş. Lütfen doldurun.`);
+                     }
+                     if (tcValue.length !== 11 || !/^\d{11}$/.test(tcValue)) {
+                         const studentName = field.dataset.studentName || 'Öğrenci';
+                         return showModalAlert('⚠️ Geçersiz TC Kimlik No', `"${studentName}" için TC Kimlik Numarası 11 haneli olmalı ve sadece rakamlardan oluşmalıdır.`);
+                     }
                  }
-                 if (tcValue.length !== 11 || !/^\d{11}$/.test(tcValue)) {
-                     const studentName = field.dataset.studentName || 'Öğrenci';
-                     return showModalAlert('⚠️ Geçersiz TC Kimlik No', `"${studentName}" için TC Kimlik Numarası 11 haneli olmalı ve sadece rakamlardan oluşmalıdır.`);
+             } else {
+                 // Tek öğrenci kaydı - minorFields kontrolü
+                 const minorFieldsDiv = document.getElementById('minorFields');
+                 const isChildRegistration = minorFieldsDiv && minorFieldsDiv.style.display !== 'none';
+                 
+                 console.log('🔍 Single student TC Validation Debug:', {
+                     minorFieldsExists: !!minorFieldsDiv,
+                     minorFieldsDisplay: minorFieldsDiv?.style.display,
+                     isChildRegistration: isChildRegistration,
+                     minorTcValue: document.getElementById('minorTc')?.value
+                 });
+                 
+                 if (isChildRegistration) {
+                     const minorTc = document.getElementById('minorTc')?.value?.trim();
+                     console.log('📝 Single student TC check:', { minorTc, length: minorTc?.length });
+                     
+                     if (!minorTc) {
+                         return showModalAlert('⚠️ Öğrenci TC Gerekli', 'Öğrenci TC Kimlik Numarası alanı zorunludur. Lütfen doldurun.');
+                     }
+                     if (minorTc.length !== 11 || !/^\d{11}$/.test(minorTc)) {
+                         return showModalAlert('⚠️ Geçersiz Öğrenci TC', 'Öğrenci TC Kimlik Numarası 11 haneli olmalı ve sadece rakamlardan oluşmalıdır.');
+                     }
                  }
              }
              
