@@ -251,8 +251,9 @@
                     <div id="minorFields" style="margin-top: 20px; display: none;">
                         <h4 class="section-title" style="font-size: 1.2em; margin-bottom: 15px; text-align: left;">Öğrenci Bilgileri</h4>
                         <div class="form-grid">
-                            <div class="form-group"><label for="minorFullName">Öğrenci Adı Soyadı *</label><input type="text" id="minorFullName" name="Resit_Olmayan_Adi_Soyadi"></div>
-                            <div class="form-group"><label for="minorDob">Öğrenci Doğum Tarihi *</label><input type="date" id="minorDob" name="Resit_Olmayan_Dogum_Tarihi" min="1900-01-01" max=""></div>
+                            <div class="form-group"><label for="minorFullName">Öğrenci Adı Soyadı *</label><input type="text" id="minorFullName" name="Resit_Olmayan_Adi_Soyadi" required></div>
+                            <div class="form-group"><label for="minorTc">🆔 Öğrenci TC Kimlik No *</label><input type="text" id="minorTc" name="Resit_Olmayan_TC" required pattern="[0-9]{11}" maxlength="11" placeholder="11 haneli TC kimlik numarası"></div>
+                            <div class="form-group"><label for="minorDob">Öğrenci Doğum Tarihi *</label><input type="date" id="minorDob" name="Resit_Olmayan_Dogum_Tarihi" min="1900-01-01" max="" required></div>
                         </div>
                         <h4 class="section-title" style="font-size: 1.2em; margin-top: 20px; margin-bottom: 15px; text-align: left;">İkinci Veli Bilgileri (İsteğe Bağlı)</h4>
                         <div class="form-grid">
@@ -1041,6 +1042,32 @@
                   return showModalAlert('⚠️ Adres Gerekli', 'Adres alanı zorunludur. Lütfen doldurun.');
              }
              
+             // ✅ Çocuk kaydı ise öğrenci TC kontrolü
+             const isChildRegistration = document.getElementById('membership-type').value === 'child';
+             if (isChildRegistration) {
+                 const minorTc = document.getElementById('minorTc')?.value.trim();
+                 if (!minorTc) {
+                     return showModalAlert('⚠️ Öğrenci TC Gerekli', 'Öğrenci TC Kimlik Numarası alanı zorunludur. Lütfen doldurun.');
+                 }
+                 if (minorTc.length !== 11 || !/^\d{11}$/.test(minorTc)) {
+                     return showModalAlert('⚠️ Geçersiz Öğrenci TC', 'Öğrenci TC Kimlik Numarası 11 haneli olmalı ve sadece rakamlardan oluşmalıdır.');
+                 }
+             }
+             
+             // ✅ Çoklu çocuk kayıtlarında her öğrenci için TC kontrolü
+             const studentTcFields = document.querySelectorAll('.student-tc-field');
+             for (const field of studentTcFields) {
+                 const tcValue = field.value.trim();
+                 if (!tcValue) {
+                     const studentName = field.dataset.studentName || 'Öğrenci';
+                     return showModalAlert('⚠️ Öğrenci TC Gerekli', `"${studentName}" için TC Kimlik Numarası alanı boş. Lütfen doldurun.`);
+                 }
+                 if (tcValue.length !== 11 || !/^\d{11}$/.test(tcValue)) {
+                     const studentName = field.dataset.studentName || 'Öğrenci';
+                     return showModalAlert('⚠️ Geçersiz TC Kimlik No', `"${studentName}" için TC Kimlik Numarası 11 haneli olmalı ve sadece rakamlardan oluşmalıdır.`);
+                 }
+             }
+             
              // ✅ Çocuk öğrenci doğum tarihi kontrolü
              const studentBirthdateFields = document.querySelectorAll('.student-birthdate-field');
              for (const field of studentBirthdateFields) {
@@ -1278,6 +1305,10 @@
                     <div class="form-group">
                         <label>Öğrenci ${index + 1} Adı Soyadı *</label>
                         <input type="text" class="form-control" value="${reg.studentName}" readonly required>
+                    </div>
+                    <div class="form-group">
+                        <label>🆔 TC Kimlik No *</label>
+                        <input type="text" class="form-control student-tc-field" value="${reg.studentTc || ''}" pattern="[0-9]{11}" maxlength="11" placeholder="11 haneli TC" required data-student-name="${reg.studentName}">
                     </div>
                     <div class="form-group">
                         <label>Doğum Tarihi *</label>
