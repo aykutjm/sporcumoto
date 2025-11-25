@@ -25658,6 +25658,7 @@ Görev detaylarını kontrol ediniz.</textarea>
                                     <div><strong>Öğrenci Adı:</strong> ${member.Resit_Olmayan_Adi_Soyadi || '-'}</div>
                                     ${member.studentTc ? `<div><strong>🆔 Öğrenci TC:</strong> ${member.studentTc}</div>` : ''}
                                     <div><strong>Veli 1:</strong> ${parentName}</div>
+                                    ${member.parentTc ? `<div><strong>🆔 Veli TC:</strong> ${member.parentTc}</div>` : ''}
                                     <div><strong>Veli 2:</strong> ${parentName2}</div>
                                     <div><strong>Durum:</strong> ${member.status === 'active' ? '✅ Aktif' : member.status === 'expired' ? '❌ Pasif' : '⏸️ Dondurulmuş'}</div>
                                     ${member.DogumTarihi ? `<div><strong>Doğum Tarihi:</strong> ${new Date(member.DogumTarihi).toLocaleDateString('tr-TR')}</div>` : ''}
@@ -25764,6 +25765,11 @@ Görev detaylarını kontrol ediniz.</textarea>
             // ✅ Öğrenci TC Kimlik No
             if (form.studentTc) {
                 form.studentTc.value = member.studentTc || '';
+            }
+            
+            // ✅ Veli TC Kimlik No
+            if (form.parentTc) {
+                form.parentTc.value = member.parentTc || '';
             }
             
             // ✅ Doğum tarihi (studentBirthDate veya DogumTarihi)
@@ -35514,6 +35520,7 @@ Görev detaylarını kontrol ediniz.</textarea>
                                  <div class="form-grid">
                                      <div class="form-group"><label for="memberTypePre">Kayıt Tipi *</label><select class="form-control" name="memberType" id="memberTypePre" required><option value="child">Çocuk</option><option value="adult">Yetişkin</option></select></div>
                                      <div class="form-group" id="parentName1Group"><label for="parentNamePre">Veli Adı Soyadı *</label><input type="text" id="parentNamePre" class="form-control" name="parentName"></div>
+                                     <div class="form-group" id="parentTcGroup"><label for="parentTcPre">🆔 Veli TC Kimlik No *</label><input type="text" id="parentTcPre" class="form-control" name="parentTc" required pattern="[0-9]{11}" maxlength="11" placeholder="11 haneli TC kimlik numarası"></div>
                                      <div class="form-group" id="phone1Group"><label for="preRegPhonePre">Veli Telefon *</label><input type="tel" id="preRegPhonePre" class="form-control" name="phone" required pattern="0[0-9]{10}" maxlength="11"></div>
                                      <div class="form-group" id="parentName2Group"><label for="parentName2Pre">Veli 2 Adı Soyadı (İsteğe Bağlı)</label><input type="text" id="parentName2Pre" class="form-control" name="parentName2"></div>
                                      <div class="form-group" id="phone2Group"><label for="preRegPhone2Pre">Veli 2 Telefon</label><input type="tel" id="preRegPhone2Pre" class="form-control" name="phone2" pattern="0[0-9]{10}" maxlength="11"></div>
@@ -38862,6 +38869,10 @@ Branş: {BRANS}<br>
                         <div class="form-group">
                             <label>Veli 1 Adı Soyadı <span class="required-star">*</span></label>
                             <input type="text" class="form-control" name="Ad_Soyad" required>
+                        </div>
+                        <div class="form-group">
+                            <label>🆔 Veli 1 TC Kimlik No <span class="required-star">*</span></label>
+                            <input type="text" class="form-control" name="parentTc" required pattern="[0-9]{11}" maxlength="11" placeholder="11 haneli TC kimlik numarası">
                         </div>
                         <div class="form-group">
                             <label>📞 Telefon 1 <span class="required-star">*</span></label>
