@@ -25654,13 +25654,13 @@ Görev detaylarını kontrol ediniz.</textarea>
                             
                             <div class="tab-content active" style="padding: 20px; background: white; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 8px 8px;">
                                 <h4 style="margin-top: 0;">👤 Üye Bilgileri</h4>
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                                <div id="member-info-${memberId}" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                                     <div><strong>Öğrenci Adı:</strong> ${member.Resit_Olmayan_Adi_Soyadi || '-'}</div>
-                                    ${member.studentTc ? `<div><strong>🆔 Öğrenci TC:</strong> ${member.studentTc}</div>` : ''}
+                                    ${member.studentTc ? `<div><strong>🆔 Öğrenci TC:</strong> ${member.studentTc}</div>` : '<div id="student-tc-placeholder"></div>'}
                                     ${member.Resit_Olmayan_Dogum_Tarihi ? `<div><strong>📅 Öğrenci Doğum Tarihi:</strong> ${new Date(member.Resit_Olmayan_Dogum_Tarihi).toLocaleDateString('tr-TR')}</div>` : ''}
                                     <div><strong>Veli 1:</strong> ${parentName}</div>
-                                    ${member.parentTc ? `<div><strong>🆔 Veli TC:</strong> ${member.parentTc}</div>` : ''}
-                                    ${member.DogumTarihi ? `<div><strong>📅 Veli Doğum Tarihi:</strong> ${new Date(member.DogumTarihi).toLocaleDateString('tr-TR')}</div>` : ''}
+                                    ${member.parentTc || member.TC_Kimlik_No || member.TC_No ? `<div><strong>🆔 Veli TC:</strong> ${member.parentTc || member.TC_Kimlik_No || member.TC_No}</div>` : '<div id="parent-tc-placeholder"></div>'}
+                                    ${member.DogumTarihi || member.Dogum_Tarihi ? `<div><strong>📅 Veli Doğum Tarihi:</strong> ${new Date(member.DogumTarihi || member.Dogum_Tarihi).toLocaleDateString('tr-TR')}</div>` : '<div id="parent-birth-placeholder"></div>'}
                                     <div><strong>Veli 2:</strong> ${parentName2}</div>
                                     <div><strong>Durum:</strong> ${member.status === 'active' ? '✅ Aktif' : member.status === 'expired' ? '❌ Pasif' : '⏸️ Dondurulmuş'}</div>
                                 </div>
@@ -25697,6 +25697,51 @@ Görev detaylarını kontrol ediniz.</textarea>
                     }
                 });
             }
+            
+            // ✅ preRegistrations'dan TC bilgilerini çek
+            (async () => {
+                try {
+                    const { data: preReg, error } = await supabase
+                        .from('preRegistrations')
+                        .select('studentTc, parentTc, parentBirthDate')
+                        .eq('Telefon', member.Telefon || member.phone)
+                        .eq('clubId', currentClubId)
+                        .order('createdAt', { ascending: false })
+                        .limit(1)
+                        .single();
+                    
+                    if (!error && preReg) {
+                        const infoDiv = document.getElementById(`member-info-${memberId}`);
+                        if (infoDiv) {
+                            // Öğrenci TC ekle
+                            if (preReg.studentTc && !member.studentTc) {
+                                const placeholder = document.getElementById('student-tc-placeholder');
+                                if (placeholder) {
+                                    placeholder.innerHTML = `<strong>🆔 Öğrenci TC:</strong> ${preReg.studentTc}`;
+                                }
+                            }
+                            
+                            // Veli TC ekle
+                            if (preReg.parentTc && !member.parentTc && !member.TC_Kimlik_No) {
+                                const placeholder = document.getElementById('parent-tc-placeholder');
+                                if (placeholder) {
+                                    placeholder.innerHTML = `<strong>🆔 Veli TC:</strong> ${preReg.parentTc}`;
+                                }
+                            }
+                            
+                            // Veli Doğum Tarihi ekle
+                            if (preReg.parentBirthDate && !member.DogumTarihi && !member.Dogum_Tarihi) {
+                                const placeholder = document.getElementById('parent-birth-placeholder');
+                                if (placeholder) {
+                                    placeholder.innerHTML = `<strong>📅 Veli Doğum Tarihi:</strong> ${new Date(preReg.parentBirthDate).toLocaleDateString('tr-TR')}`;
+                                }
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.error('TC bilgileri yüklenemedi:', err);
+                }
+            })();
         }
         
         // Üye detay modalını kapat
