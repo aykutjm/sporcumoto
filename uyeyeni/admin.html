@@ -10326,19 +10326,11 @@ Görev detaylarını kontrol ediniz.</textarea>
                     // ✅ Sadece güncellenen alanları değiştir, diğerlerini koru
                     const payment = updatedSchedule[paymentIndex];
                     payment.amount = parseFloat(unformatCurrency(form.paymentAmount.value) || '0');
-                    payment.dueDate = form.paymentDueDate.value;
                     payment.status = form.paymentStatus.value;
                     payment.note = form.paymentNote.value;
                     if (form.paymentDate.value) payment.paymentDate = form.paymentDate.value;
                     if (form.paymentMethod.value) payment.method = form.paymentMethod.value;
-                     // Update period info only if the fields exist in the form
-                    if(form.periodStart && form.periodEnd && form.lessonCount){
-                        payment.period = {
-                            start: form.periodStart.value,
-                            end: form.periodEnd.value,
-                            lessonCount: parseInt(form.lessonCount.value) || 0
-                        };
-                    }
+                    // ✅ Dönem tarihleri ve son ödeme tarihi HİÇ güncellenmez (readonly)
 
                     // Recalculate subsequent payments
                     updatedSchedule = recalculateSubsequentPayments(updatedSchedule, paymentIndex);
@@ -27090,6 +27082,12 @@ Görev detaylarını kontrol ediniz.</textarea>
                 additionalMonthsField.style.display = 'block'; // ✅ Yeni aidatta göster
                 form.paymentNumber.value = (preReg.paymentSchedule || []).length + 1;
                 form.additionalMonths.value = 0; // Varsayılan 0
+                
+                // ✅ Yeni ekleme modunda tüm alanlar düzenlenebilir
+                form.periodStart.readOnly = false;
+                form.periodEnd.readOnly = false;
+                form.lessonCount.readOnly = false;
+                form.paymentDueDate.readOnly = false;
             } else {
                 const payment = preReg.paymentSchedule.find(p => p.paymentNumber === paymentNumber);
                 if(!payment) return;
@@ -27108,6 +27106,12 @@ Görev detaylarını kontrol ediniz.</textarea>
                 form.periodStart.value = payment.period.start;
                 form.periodEnd.value = payment.period.end;
                 form.lessonCount.value = payment.period.lessonCount;
+                
+                // ✅ Düzenleme modunda dönem bilgilerini readonly yap
+                form.periodStart.readOnly = true;
+                form.periodEnd.readOnly = true;
+                form.lessonCount.readOnly = true;
+                form.paymentDueDate.readOnly = true;
                 
                  const paymentStatusSelect = form.querySelector('[name="paymentStatus"]');
                  const paymentDateInput = form.querySelector('[name="paymentDate"]');
