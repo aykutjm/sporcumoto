@@ -28430,7 +28430,7 @@ Görev detaylarını kontrol ediniz.</textarea>
                 <div class="member-info-container">
                     <div class="member-info-main">
                         <div class="detail-item"><strong>Üye Adı Soyadı:</strong> <span>${memberName}</span></div>
-                        <div class="detail-item" id="student-tc-info-${memberId}"><strong>🆔 TC:</strong> <span class="loading-text">Yükleniyor...</span></div>
+                        <div class="detail-item" id="student-tc-info-${memberId}"><strong>🆔 TC:</strong> <span>...</span></div>
                         <div class="detail-item"><strong>Doğum Tarihi:</strong> <span>${birthDate}</span></div>
                         <div class="detail-item"><strong>Branş:</strong> <span>${capitalize(member.Brans || 'Bilinmiyor')}</span></div>
                         <div class="detail-item"><strong>Gruplar:</strong> <span>${memberGroups.length > 0 ? memberGroups.map(g => g.groupName).join(', ') : 'Atanmamış'}</span></div>
@@ -28442,8 +28442,8 @@ Görev detaylarını kontrol ediniz.</textarea>
                             <div class="contact-card-body">
                                 <p><strong>İsim:</strong> <span>${member.Ad_Soyad || 'Belirtilmemiş'}</span></p>
                                 <p><strong>Telefon:</strong> <span>${member.Telefon ? formatPhoneDisplay(member.Telefon) : 'Belirtilmemiş'}</span></p>
-                                <p id="parent-tc-info-${memberId}"><strong>🆔 TC:</strong> <span class="loading-text">Yükleniyor...</span></p>
-                                <p id="parent-birth-info-${memberId}"><strong>📅 Doğum Tarihi:</strong> <span class="loading-text">Yükleniyor...</span></p>
+                                <p id="parent-tc-info-${memberId}"><strong>🆔 TC:</strong> <span>...</span></p>
+                                <p id="parent-birth-info-${memberId}"><strong>📅 Doğum Tarihi:</strong> <span>...</span></p>
                             </div>
                         </div>
                         ${veli2Html}
