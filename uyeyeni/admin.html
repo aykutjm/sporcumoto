@@ -28523,19 +28523,33 @@ Görev detaylarını kontrol ediniz.</textarea>
             (async () => {
                 try {
                     console.log('🔍 TC bilgileri aranıyor (showMemberAttendancePage)...', {
-                        telefon: member.Telefon,
-                        clubId: currentClubId,
-                        memberId: memberId
+                        memberId: memberId,
+                        clubId: currentClubId
                     });
                     
-                    const { data: preReg, error } = await supabase
+                    // Önce memberId ile dene (yeni sistem)
+                    let { data: preReg, error } = await supabase
                         .from('preRegistrations')
                         .select('studentTc, parentTc, parentBirthDate')
-                        .eq('Telefon', member.Telefon)
+                        .eq('memberId', memberId)
                         .eq('clubId', currentClubId)
-                        .order('createdAt', { ascending: false })
-                        .limit(1)
-                        .single();
+                        .maybeSingle();
+                    
+                    // Bulunamazsa telefon ile dene (eski kayıtlar için fallback)
+                    if (!preReg && member.Telefon) {
+                        console.log('📞 memberId bulunamadı, telefon ile deneniyor:', member.Telefon);
+                        const phoneQuery = await supabase
+                            .from('preRegistrations')
+                            .select('studentTc, parentTc, parentBirthDate')
+                            .eq('Telefon', member.Telefon)
+                            .eq('clubId', currentClubId)
+                            .order('createdAt', { ascending: false })
+                            .limit(1)
+                            .maybeSingle();
+                        
+                        preReg = phoneQuery.data;
+                        error = phoneQuery.error;
+                    }
                     
                     console.log('📊 preReg sonucu:', { preReg, error });
                     

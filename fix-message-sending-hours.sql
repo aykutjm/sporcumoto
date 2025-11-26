@@ -17,7 +17,7 @@ WHERE message_sending_hours IS NULL;
 -- Kontrol: Atakum'un cihaz ayarlarını göster
 SELECT 
   wd.id,
-  wd."deviceName",
+  wd."instanceName",
   wd."phoneNumber",
   wd.message_sending_hours,
   c.name as club_name
