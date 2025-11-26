@@ -10329,7 +10329,14 @@ Görev detaylarını kontrol ediniz.</textarea>
                     payment.dueDate = form.paymentDueDate.value;
                     payment.status = form.paymentStatus.value;
                     payment.note = form.paymentNote.value;
-                    if (form.paymentDate.value) payment.paymentDate = form.paymentDate.value;
+                    
+                    // ✅ Ödeme durumu "ödenmedi" ise ödeme tarihini temizle
+                    if (payment.status === 'unpaid' || payment.status === 'overdue') {
+                        payment.paymentDate = null;
+                    } else if (form.paymentDate.value) {
+                        payment.paymentDate = form.paymentDate.value;
+                    }
+                    
                     if (form.paymentMethod.value) payment.method = form.paymentMethod.value;
                     
                     // ✅ Dönem bilgileri manuel olarak değiştirilebilir
