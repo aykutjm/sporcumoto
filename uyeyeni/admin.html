@@ -28430,6 +28430,7 @@ Görev detaylarını kontrol ediniz.</textarea>
                 <div class="member-info-container">
                     <div class="member-info-main">
                         <div class="detail-item"><strong>Üye Adı Soyadı:</strong> <span>${memberName}</span></div>
+                        <div class="detail-item" id="student-tc-info-${memberId}"><strong>🆔 TC:</strong> <span class="loading-text">Yükleniyor...</span></div>
                         <div class="detail-item"><strong>Doğum Tarihi:</strong> <span>${birthDate}</span></div>
                         <div class="detail-item"><strong>Branş:</strong> <span>${capitalize(member.Brans || 'Bilinmiyor')}</span></div>
                         <div class="detail-item"><strong>Gruplar:</strong> <span>${memberGroups.length > 0 ? memberGroups.map(g => g.groupName).join(', ') : 'Atanmamış'}</span></div>
@@ -28441,6 +28442,8 @@ Görev detaylarını kontrol ediniz.</textarea>
                             <div class="contact-card-body">
                                 <p><strong>İsim:</strong> <span>${member.Ad_Soyad || 'Belirtilmemiş'}</span></p>
                                 <p><strong>Telefon:</strong> <span>${member.Telefon ? formatPhoneDisplay(member.Telefon) : 'Belirtilmemiş'}</span></p>
+                                <p id="parent-tc-info-${memberId}"><strong>🆔 TC:</strong> <span class="loading-text">Yükleniyor...</span></p>
+                                <p id="parent-birth-info-${memberId}"><strong>📅 Doğum Tarihi:</strong> <span class="loading-text">Yükleniyor...</span></p>
                             </div>
                         </div>
                         ${veli2Html}
@@ -28515,6 +28518,70 @@ Görev detaylarını kontrol ediniz.</textarea>
             `;
             
             contentDiv.innerHTML = detailsHtml;
+            
+            // ✅ preRegistrations'dan TC bilgilerini çek ve göster
+            (async () => {
+                try {
+                    console.log('🔍 TC bilgileri aranıyor (showMemberAttendancePage)...', {
+                        telefon: member.Telefon,
+                        clubId: currentClubId,
+                        memberId: memberId
+                    });
+                    
+                    const { data: preReg, error } = await supabase
+                        .from('preRegistrations')
+                        .select('studentTc, parentTc, parentBirthDate')
+                        .eq('Telefon', member.Telefon)
+                        .eq('clubId', currentClubId)
+                        .order('createdAt', { ascending: false })
+                        .limit(1)
+                        .single();
+                    
+                    console.log('📊 preReg sonucu:', { preReg, error });
+                    
+                    if (!error && preReg) {
+                        // Öğrenci TC
+                        const studentTcEl = document.getElementById(`student-tc-info-${memberId}`);
+                        if (studentTcEl && preReg.studentTc) {
+                            studentTcEl.innerHTML = `<strong>🆔 TC:</strong> <span>${preReg.studentTc}</span>`;
+                            console.log('✅ Öğrenci TC güncellendi:', preReg.studentTc);
+                        } else if (studentTcEl) {
+                            studentTcEl.innerHTML = `<strong>🆔 TC:</strong> <span style="color: #999;">Belirtilmemiş</span>`;
+                        }
+                        
+                        // Veli TC
+                        const parentTcEl = document.getElementById(`parent-tc-info-${memberId}`);
+                        if (parentTcEl && preReg.parentTc) {
+                            parentTcEl.innerHTML = `<strong>🆔 TC:</strong> <span>${preReg.parentTc}</span>`;
+                            console.log('✅ Veli TC güncellendi:', preReg.parentTc);
+                        } else if (parentTcEl) {
+                            parentTcEl.innerHTML = `<strong>🆔 TC:</strong> <span style="color: #999;">Belirtilmemiş</span>`;
+                        }
+                        
+                        // Veli Doğum Tarihi
+                        const parentBirthEl = document.getElementById(`parent-birth-info-${memberId}`);
+                        if (parentBirthEl && preReg.parentBirthDate) {
+                            parentBirthEl.innerHTML = `<strong>📅 Doğum Tarihi:</strong> <span>${new Date(preReg.parentBirthDate).toLocaleDateString('tr-TR')}</span>`;
+                            console.log('✅ Veli Doğum Tarihi güncellendi:', preReg.parentBirthDate);
+                        } else if (parentBirthEl) {
+                            parentBirthEl.innerHTML = `<strong>📅 Doğum Tarihi:</strong> <span style="color: #999;">Belirtilmemiş</span>`;
+                        }
+                    } else {
+                        console.warn('⚠️ preRegistration bulunamadı');
+                        // Elementleri "Belirtilmemiş" olarak güncelle
+                        const studentTcEl = document.getElementById(`student-tc-info-${memberId}`);
+                        if (studentTcEl) studentTcEl.innerHTML = `<strong>🆔 TC:</strong> <span style="color: #999;">Belirtilmemiş</span>`;
+                        
+                        const parentTcEl = document.getElementById(`parent-tc-info-${memberId}`);
+                        if (parentTcEl) parentTcEl.innerHTML = `<strong>🆔 TC:</strong> <span style="color: #999;">Belirtilmemiş</span>`;
+                        
+                        const parentBirthEl = document.getElementById(`parent-birth-info-${memberId}`);
+                        if (parentBirthEl) parentBirthEl.innerHTML = `<strong>📅 Doğum Tarihi:</strong> <span style="color: #999;">Belirtilmemiş</span>`;
+                    }
+                } catch (err) {
+                    console.error('❌ TC bilgileri yüklenemedi:', err);
+                }
+            })();
             
             // Görüşme kayıtlarını yükle
             const phoneNumber = member.Telefon || member.Telefon_2;
