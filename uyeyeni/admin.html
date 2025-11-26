@@ -10323,25 +10323,22 @@ Görev detaylarını kontrol ediniz.</textarea>
                     const paymentIndex = updatedSchedule.findIndex(p => p.paymentNumber === paymentNumber);
                     if (paymentIndex === -1) throw new Error("Düzenlenecek ödeme bulunamadı.");
 
-                    const originalPayment = updatedSchedule[paymentIndex];
-                    const updatedPaymentData = { ...originalPayment };
-                    updatedPaymentData.amount = parseFloat(unformatCurrency(form.paymentAmount.value) || '0');
-                    updatedPaymentData.dueDate = form.paymentDueDate.value;
-                    updatedPaymentData.status = form.paymentStatus.value;
-                    updatedPaymentData.note = form.paymentNote.value;
-                    if (form.paymentDate.value) updatedPaymentData.paymentDate = form.paymentDate.value;
-                    if (form.paymentMethod.value) updatedPaymentData.method = form.paymentMethod.value;
+                    // ✅ Sadece güncellenen alanları değiştir, diğerlerini koru
+                    const payment = updatedSchedule[paymentIndex];
+                    payment.amount = parseFloat(unformatCurrency(form.paymentAmount.value) || '0');
+                    payment.dueDate = form.paymentDueDate.value;
+                    payment.status = form.paymentStatus.value;
+                    payment.note = form.paymentNote.value;
+                    if (form.paymentDate.value) payment.paymentDate = form.paymentDate.value;
+                    if (form.paymentMethod.value) payment.method = form.paymentMethod.value;
                      // Update period info only if the fields exist in the form
                     if(form.periodStart && form.periodEnd && form.lessonCount){
-                        updatedPaymentData.period = {
+                        payment.period = {
                             start: form.periodStart.value,
                             end: form.periodEnd.value,
                             lessonCount: parseInt(form.lessonCount.value) || 0
                         };
                     }
-
-
-                    updatedSchedule[paymentIndex] = updatedPaymentData;
 
                     // Recalculate subsequent payments
                     updatedSchedule = recalculateSubsequentPayments(updatedSchedule, paymentIndex);
@@ -27226,7 +27223,9 @@ Görev detaylarını kontrol ediniz.</textarea>
             const todayString = getTodayString();
             const updatedSchedule = preReg.paymentSchedule.map(p => {
                 if (paymentNumbers.includes(p.paymentNumber) && p.status !== 'paid') {
-                    return { ...p, status: 'paid', paymentDate: todayString };
+                    // ✅ Sadece status ve paymentDate güncelle, diğer alanları koru
+                    p.status = 'paid';
+                    p.paymentDate = todayString;
                 }
                 return p;
             });
