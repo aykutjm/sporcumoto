@@ -10323,17 +10323,24 @@ Görev detaylarını kontrol ediniz.</textarea>
                     const paymentIndex = updatedSchedule.findIndex(p => p.paymentNumber === paymentNumber);
                     if (paymentIndex === -1) throw new Error("Düzenlenecek ödeme bulunamadı.");
 
-                    // ✅ Sadece güncellenen alanları değiştir, diğerlerini koru
+                    // ✅ Güncellenen alanları kaydet
                     const payment = updatedSchedule[paymentIndex];
                     payment.amount = parseFloat(unformatCurrency(form.paymentAmount.value) || '0');
+                    payment.dueDate = form.paymentDueDate.value;
                     payment.status = form.paymentStatus.value;
                     payment.note = form.paymentNote.value;
                     if (form.paymentDate.value) payment.paymentDate = form.paymentDate.value;
                     if (form.paymentMethod.value) payment.method = form.paymentMethod.value;
-                    // ✅ Dönem tarihleri ve son ödeme tarihi HİÇ güncellenmez (readonly)
-
-                    // Recalculate subsequent payments
-                    updatedSchedule = recalculateSubsequentPayments(updatedSchedule, paymentIndex);
+                    
+                    // ✅ Dönem bilgileri manuel olarak değiştirilebilir
+                    if(form.periodStart && form.periodEnd && form.lessonCount){
+                        payment.period = {
+                            start: form.periodStart.value,
+                            end: form.periodEnd.value,
+                            lessonCount: parseInt(form.lessonCount.value) || 0
+                        };
+                    }
+                    // ✅ Sonraki ödemeler otomatik güncellenmez
                 }
 
                 // Renumber payments to ensure they are sequential
@@ -27107,11 +27114,11 @@ Görev detaylarını kontrol ediniz.</textarea>
                 form.periodEnd.value = payment.period.end;
                 form.lessonCount.value = payment.period.lessonCount;
                 
-                // ✅ Düzenleme modunda dönem bilgilerini readonly yap
-                form.periodStart.readOnly = true;
-                form.periodEnd.readOnly = true;
-                form.lessonCount.readOnly = true;
-                form.paymentDueDate.readOnly = true;
+                // ✅ Düzenleme modunda tüm alanlar düzenlenebilir (manuel kontrol için)
+                form.periodStart.readOnly = false;
+                form.periodEnd.readOnly = false;
+                form.lessonCount.readOnly = false;
+                form.paymentDueDate.readOnly = false;
                 
                  const paymentStatusSelect = form.querySelector('[name="paymentStatus"]');
                  const paymentDateInput = form.querySelector('[name="paymentDate"]');
