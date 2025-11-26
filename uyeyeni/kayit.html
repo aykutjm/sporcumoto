@@ -2008,9 +2008,28 @@
 
             // 2. Update Pre-registration Status (Fast and critical) - TÜM kayıtları güncelle
             for (const preReg of allPreRegistrations) {
+                // ✅ İlgili member'ı bul ve memberId'yi preRegistrations'a kaydet
+                const { data: members } = await window.supabase
+                    .from('members')
+                    .select('id')
+                    .eq('preRegistrationId', preReg.id)
+                    .limit(1)
+                    .single();
+                
+                const updateData = { 
+                    status: 'completed', 
+                    completedAt: new Date().toISOString()
+                };
+                
+                // ✅ memberId varsa ekle
+                if (members && members.id) {
+                    updateData.memberId = members.id;
+                    console.log('✅ memberId preRegistrations\'a eklendi:', members.id);
+                }
+                
                 const { error } = await window.supabase
                     .from('preRegistrations')
-                    .update({ status: 'completed', completedAt: new Date().toISOString() })
+                    .update(updateData)
                     .eq('id', preReg.id);
                 
                 if (error) {
