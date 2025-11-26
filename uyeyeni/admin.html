@@ -25701,6 +25701,12 @@ Görev detaylarını kontrol ediniz.</textarea>
             // ✅ preRegistrations'dan TC bilgilerini çek
             (async () => {
                 try {
+                    console.log('🔍 TC bilgileri aranıyor...', {
+                        telefon: member.Telefon || member.phone,
+                        clubId: currentClubId,
+                        memberId: memberId
+                    });
+                    
                     const { data: preReg, error } = await supabase
                         .from('preRegistrations')
                         .select('studentTc, parentTc, parentBirthDate')
@@ -25710,36 +25716,67 @@ Görev detaylarını kontrol ediniz.</textarea>
                         .limit(1)
                         .single();
                     
+                    console.log('📊 preRegistrations sorgu sonucu:', { preReg, error });
+                    
                     if (!error && preReg) {
+                        console.log('✅ TC bilgileri bulundu:', preReg);
+                        
                         const infoDiv = document.getElementById(`member-info-${memberId}`);
+                        console.log('📍 Info div:', infoDiv);
+                        
                         if (infoDiv) {
                             // Öğrenci TC ekle
                             if (preReg.studentTc && !member.studentTc) {
                                 const placeholder = document.getElementById('student-tc-placeholder');
+                                console.log('👶 Öğrenci TC placeholder:', placeholder, 'TC:', preReg.studentTc);
                                 if (placeholder) {
                                     placeholder.innerHTML = `<strong>🆔 Öğrenci TC:</strong> ${preReg.studentTc}`;
+                                    console.log('✅ Öğrenci TC eklendi');
                                 }
+                            } else {
+                                console.log('⏭️ Öğrenci TC atlandı:', { 
+                                    preRegTc: preReg.studentTc, 
+                                    memberTc: member.studentTc 
+                                });
                             }
                             
                             // Veli TC ekle
                             if (preReg.parentTc && !member.parentTc && !member.TC_Kimlik_No) {
                                 const placeholder = document.getElementById('parent-tc-placeholder');
+                                console.log('👨 Veli TC placeholder:', placeholder, 'TC:', preReg.parentTc);
                                 if (placeholder) {
                                     placeholder.innerHTML = `<strong>🆔 Veli TC:</strong> ${preReg.parentTc}`;
+                                    console.log('✅ Veli TC eklendi');
                                 }
+                            } else {
+                                console.log('⏭️ Veli TC atlandı:', { 
+                                    preRegTc: preReg.parentTc, 
+                                    memberParentTc: member.parentTc,
+                                    memberTcKimlikNo: member.TC_Kimlik_No 
+                                });
                             }
                             
                             // Veli Doğum Tarihi ekle
                             if (preReg.parentBirthDate && !member.DogumTarihi && !member.Dogum_Tarihi) {
                                 const placeholder = document.getElementById('parent-birth-placeholder');
+                                console.log('📅 Veli Doğum Tarihi placeholder:', placeholder, 'Tarih:', preReg.parentBirthDate);
                                 if (placeholder) {
                                     placeholder.innerHTML = `<strong>📅 Veli Doğum Tarihi:</strong> ${new Date(preReg.parentBirthDate).toLocaleDateString('tr-TR')}`;
+                                    console.log('✅ Veli Doğum Tarihi eklendi');
                                 }
+                            } else {
+                                console.log('⏭️ Veli Doğum Tarihi atlandı:', { 
+                                    preRegBirth: preReg.parentBirthDate, 
+                                    memberDogumTarihi: member.DogumTarihi,
+                                    memberDogum_Tarihi: member.Dogum_Tarihi 
+                                });
                             }
                         }
+                    } else {
+                        console.warn('⚠️ preRegistration bulunamadı veya hata:', error);
                     }
                 } catch (err) {
-                    console.error('TC bilgileri yüklenemedi:', err);
+                    console.error('❌ TC bilgileri yüklenemedi:', err);
                 }
             })();
         }
