@@ -1952,7 +1952,8 @@
             // ✅ Çocuk bilgilerini ekle (PDF için)
             formData.allStudents = allPreRegistrations.map(preReg => ({
                 name: preReg.studentName || preReg.parentName,
-                birthDate: preReg.studentBirthDate || ''
+                birthDate: preReg.studentBirthDate || '',
+                tc: preReg.studentTc || '' // ✅ Öğrenci TC eklendi
             }));
             
             // 1. Update ALL Member Records in Firebase (Fast and critical) - TÜM çocukları aktif yap
