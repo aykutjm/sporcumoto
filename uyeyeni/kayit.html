@@ -1560,7 +1560,8 @@
                     studentsHTML += `
                         <p style="margin: 8px 0;">
                             <strong>Öğrenci ${index + 1}:</strong> ${student.name} 
-                            ${student.birthDate ? `<br><span style="margin-left: 20px;">Doğum Tarihi: ${birthDateFormatted}</span>` : ''}
+                            ${student.tc ? `<br><span style="margin-left: 20px;">🆔 TC: ${student.tc}</span>` : ''}
+                            ${student.birthDate ? `<br><span style="margin-left: 20px;">📅 Doğum Tarihi: ${birthDateFormatted}</span>` : ''}
                         </p>
                     `;
                 });
